@@ -1,19 +1,25 @@
 # A Function for Optimally Assigning Experimental Units to Groups
 
-This repository contains the code for an R function that will optimally assign experimental units to groups.
+To assign experimental units to treatments, it might be worthwhile to ensure that means or standard deviations (or both) of some variable that defines experimental units are as equal as possible between treatment groups. This function takes measurements from potential experimental units and assigns treatment groups that equalize means, standard deviations, and both means and standard deviations as much as possible.
 
-This function takes 6 arguments (the first 3 are required):
+Furthermore, if you have more potential experimental units than you need for your study or experiment, this function will optimally determine which experimental units best equalize means and standard deviations based on the number of treatment groups you'll have and the number of experimental units you'll have in each group.
 
-Correlation_Coefficients: a numeric vector containing the correlation coefficients to be analyzed
+This function uses the `comboGroups` function from the `RcppAlgos` package. Hopefully this function or this package does not change!
 
-Numbers_of_Observations: a numeric or an integer vector containing the numbers of observations that went in to each of the corresponding correlation coefficients
+This function takes 6 arguments (all are required except for the third and the last):
 
-Identifiers: a character or a factor vector containing names to identify each corresponding correlation coefficient
+`Identifiers`: a vector containing the names of the potential experimental units
 
-Data_Frame: an optional data frame to include such that column names can be supplied for the first three arguments (the data frame that these columns are from should be provided for this Data_Frame argument)
+`Measurements`: a numeric vector containing the measurements that will be used to optimally assign groups
 
-Alpha = 0.05: a value of alpha against which significance can be tested (the default is 0.05)
+`Data_Frame`: an optional data frame to include such that column names can be supplied for the first two arguments (the data frame that these columns are from should be provided for this Data_Frame argument)
 
-Control_for_Experimentwise_Error = TRUE: an argument specifying whether or not this function should give conservative estimates (by holding the experimentwise error rate at the given value of alpha) or liberal estimates (by using the given value of alpha for each pairwise comparison); the default, TRUE, holds the experimentwise error rate at alpha and calculates the comparisonwise error rate based on the number of pairwise comparisons
+`Number_of_Groups`: The number of treatment groups you wish to have
 
-Though this function only uses base R functions, it was heavily inspired by the 'agricolae' package, particularly the orderPvalue() and lastC() functions. Thank you Felipe de Mendiburu!
+`Number_of_Items_in_Each_Group`: The number of experimental units you wish to have in each treatment group (this function assumes that each treatment group contains the same number of experimental units)
+
+`Optimization_Method = "Both"`: an argument specifying whether you wish to optimally assign experimental units to groups by ensuring means, standard deviations, or both means and standard deviations are as similar as possible between groups (the options are `'Mean'`, `'Standard Deviation'`, and `'Both'`); the default, `'Both'`, ensures that both means and standard deviations are as similar as possible between groups
+
+<b>Works Cited</b>
+
+Wood, J. 2021. RcppAlgos: High Performance Tools for Combinatorics and Computational Mathematics. R package version 2.4.3. <https://cran.r-project.org/web/packages/RcppAlgos/>.
