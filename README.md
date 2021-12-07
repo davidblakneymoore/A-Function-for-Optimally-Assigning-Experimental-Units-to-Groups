@@ -1,6 +1,6 @@
 # A Function for Optimally Assigning Experimental Units to Groups
 
-To assign experimental units to treatments, it might be worthwhile to ensure that means or standard deviations (or both) of some variable that defines experimental units are as equal as possible between treatment groups. This function takes measurements from potential experimental units and assigns treatment groups that equalize means, standard deviations, and both means and standard deviations as much as possible.
+To assign experimental units to treatments, it might be worthwhile to ensure that means or standard deviations (or both) of some variable that defines experimental units are as equal as possible between treatment groups. This function takes measurements from potential experimental units and assigns treatment groups that equalize means, standard deviations, and both means and standard deviations of this variable as much as possible.
 
 Furthermore, if you have more potential experimental units than you need for your study or experiment, this function will optimally determine which experimental units best equalize means and standard deviations based on the number of treatment groups you'll have and the number of experimental units you'll have in each group.
 
