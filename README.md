@@ -19,7 +19,7 @@ This function takes 6 arguments, and all are required except for the third and t
 
 `Number_of_Items_in_Each_Group` is the number of experimental units you wish to have in each treatment group (this function assumes that each treatment group contains the same number of experimental units).
 
-`Optimization_Method = "Both"` is an argument specifying whether you wish to optimally assign experimental units to groups by ensuring means, standard deviations, or both means and standard deviations are as similar as possible between groups (the options are `"Mean"`, `"Standard Deviation"`, and `"Both"`). The default, `"Both"`, ensures that both means and standard deviations are as similar as possible between groups.
+`Optimization_Method = "Both"` is an argument specifying whether you wish to optimally assign experimental units to groups by ensuring means, standard deviations, or both means and standard deviations are as similar as possible between groups. The options are `"Mean"`, `"Standard Deviation"`, and `"Both"`. The default, `"Both"`, ensures that both means and standard deviations are as similar as possible between groups.
 
 <b>Works Cited</b>
 
