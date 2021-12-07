@@ -7,19 +7,19 @@ Furthermore, if you have more potential experimental units than you need for you
 
 This function uses the `comboGroups` function from the `RcppAlgos` package. Hopefully this function or this package does not change!
 
-This function takes 6 arguments (all are required except for the third and the last):
+This function takes 6 arguments, and all are required except for the third and the last.
 
-`Identifiers`: a vector containing the names of the potential experimental units
+`Identifiers` is a vector containing the names of the potential experimental units.
 
-`Measurements`: a numeric vector containing the measurements that will be used to optimally assign groups
+`Measurements` is a numeric vector containing the measurements that will be used to optimally assign groups.
 
-`Data_Frame`: an optional data frame to include such that column names can be supplied for the first two arguments (the data frame that these columns are from should be provided for this Data_Frame argument)
+`Data_Frame` is an optional data frame to include such that column names can be supplied for the first two arguments (the data frame that these columns are from should be provided for this Data_Frame argument).
 
-`Number_of_Groups`: The number of treatment groups you wish to have
+`Number_of_Groups` is the number of treatment groups you wish to have.
 
-`Number_of_Items_in_Each_Group`: The number of experimental units you wish to have in each treatment group (this function assumes that each treatment group contains the same number of experimental units)
+`Number_of_Items_in_Each_Group` is the number of experimental units you wish to have in each treatment group (this function assumes that each treatment group contains the same number of experimental units).
 
-`Optimization_Method = "Both"`: an argument specifying whether you wish to optimally assign experimental units to groups by ensuring means, standard deviations, or both means and standard deviations are as similar as possible between groups (the options are `"Mean"`, `"Standard Deviation"`, and `"Both"`); the default, `"Both"`, ensures that both means and standard deviations are as similar as possible between groups
+`Optimization_Method = "Both"` is an argument specifying whether you wish to optimally assign experimental units to groups by ensuring means, standard deviations, or both means and standard deviations are as similar as possible between groups (the options are `"Mean"`, `"Standard Deviation"`, and `"Both"`). The default, `"Both"`, ensures that both means and standard deviations are as similar as possible between groups.
 
 <b>Works Cited</b>
 
