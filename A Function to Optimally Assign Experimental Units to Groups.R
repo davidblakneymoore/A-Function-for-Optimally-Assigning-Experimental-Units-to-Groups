@@ -23,7 +23,7 @@
 # you'll have in each group.
 
 # This function uses the 'comboGroups' function from the 'RcppAlgos' package in
-# line 82. I hope this function and this package don't change.
+# line 94. I hope this function and this package don't change.
 
 
 # The Function
@@ -40,6 +40,18 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   
   # Meet Some Initial Conditions
   
+  if (is.missing(Identifiers)) {
+    stop ("Please provide a vector of names of the potential experimental units.")
+  }
+  if (is.missing(Measurements)) {
+    stop ("Please provide a vector of measurements.")
+  }
+  if (is.missing(Number_of_Groups)) {
+    stop ("Please specify the desired number of groups.")
+  }
+  if (is.missing(Number_of_Items_in_Each_Group)) {
+    stop ("Please specify how many experimental units will be in each group.")
+  }
   if (!is.numeric(Measurements)) {
     stop ("'Measurements' must be numeric.")
   }
