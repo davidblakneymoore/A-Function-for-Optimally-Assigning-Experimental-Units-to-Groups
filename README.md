@@ -4,7 +4,7 @@ To assign experimental units to treatments, it might be worthwhile to ensure tha
 
 Furthermore, if you have more potential experimental units than you need for your study or experiment, this function will optimally determine which experimental units best equalize means and standard deviations based on the number of treatment groups you'll have and the number of experimental units you'll have in each group.
 
-This function uses the `comboGroups` function from the `RcppAlgos` package. Hopefully this function or this package doesn't change.
+This function uses the `comboGroups` function from the `RcppAlgos` package. I hope this function and this package don't change.
 
 This function takes 6 arguments, and all are required except for the third and the last.
 
