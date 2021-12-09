@@ -40,16 +40,16 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   
   # Meet Some Initial Conditions
   
-  if (is.missing(Identifiers)) {
+  if (missing(Identifiers)) {
     stop ("Please provide a vector of names of the potential experimental units.")
   }
-  if (is.missing(Measurements)) {
+  if (missing(Measurements)) {
     stop ("Please provide a vector of measurements.")
   }
-  if (is.missing(Number_of_Groups)) {
+  if (missing(Number_of_Groups)) {
     stop ("Please specify the desired number of groups.")
   }
-  if (is.missing(Number_of_Items_in_Each_Group)) {
+  if (missing(Number_of_Items_in_Each_Group)) {
     stop ("Please specify how many experimental units will be in each group.")
   }
   if (!is.numeric(Measurements)) {
