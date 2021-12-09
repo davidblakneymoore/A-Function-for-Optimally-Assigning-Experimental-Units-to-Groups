@@ -36,12 +36,26 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
     install.packages('RcppAlgos')
   }
   library(RcppAlgos)
+
+  
+  # Format the Input
+  
+  Name_of_Identifiers_to_Return <- substitute(Identifiers)
+  Name_of_Measurements_to_Return <- substitute(Measurements)
+  if (!missing(Data_Frame)) {
+    Identifiers <- as.character(Data_Frame[[deparse(substitute(Identifiers))]])
+    Measurements <- Data_Frame[[deparse(substitute(Measurements))]]
+  } else if (missing(Data_Frame)) {
+    Identifiers <- as.character(Identifiers)
+    Measurements <- Measurements
+  }
+  Number_of_Observations_Used <- Number_of_Groups * Number_of_Items_in_Each_Group
   
   
   # Meet Some Initial Conditions
   
   if (missing(Identifiers)) {
-    stop ("Please provide a vector of names of the potential experimental units.")
+    stop ("Please provide a vector of names for the potential experimental units.")
   }
   if (missing(Measurements)) {
     stop ("Please provide a vector of measurements.")
@@ -67,20 +81,6 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   if (!(Optimization_Method %in% c("Mean", "Standard Deviation", "Both"))) {
     stop ("'Optimization_Method' must be either 'Mean', 'Standard Deviation', or 'Both'.")
   }
-  
-  
-  # Format the Input
-  
-  Name_of_Identifiers_to_Return <- substitute(Identifiers)
-  Name_of_Measurements_to_Return <- substitute(Measurements)
-  if (!missing(Data_Frame)) {
-    Identifiers <- as.character(Data_Frame[[deparse(substitute(Identifiers))]])
-    Measurements <- as.numeric(Data_Frame[[deparse(substitute(Measurements))]])
-  } else if (missing(Data_Frame)) {
-    Identifiers <- as.character(Identifiers)
-    Measurements <- as.numeric(Measurements)
-  }
-  Number_of_Observations_Used <- Number_of_Groups * Number_of_Items_in_Each_Group
   
   
   # Generate All Possible Combinations
