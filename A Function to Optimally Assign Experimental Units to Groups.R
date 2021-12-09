@@ -23,7 +23,7 @@
 # you'll have in each group.
 
 # This function uses the 'comboGroups' function from the 'RcppAlgos' package in
-# line 80. Hopefully this function or this package does not change!
+# line 82. I hope this function and this package don't change.
 
 
 # The Function
@@ -59,6 +59,8 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   
   # Format the Input
   
+  Name_of_Identifiers_to_Return <- substitute(Identifiers)
+  Name_of_Measurements_to_Return <- substitute(Measurements)
   if (!missing(Data_Frame)) {
     Identifiers <- as.character(Data_Frame[[deparse(substitute(Identifiers))]])
     Measurements <- as.numeric(Data_Frame[[deparse(substitute(Measurements))]])
@@ -163,6 +165,9 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
     }))
     colnames(Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means) <- "Standard_Deviation"
     Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means <- cbind(Means_of_the_Combination_That_Minimizes_Variability_in_Means, Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means)
+    Combination_That_Minimizes_Variability_in_Means <- lapply(Combination_That_Minimizes_Variability_in_Means, function (x) {
+      setNames(x, c(Name_of_Identifiers_to_Return, Name_of_Measurements_to_Return))
+    })
     list(Minimizing_Variability_in_Means = list(Combination_That_Minimizes_Variability_in_Means = Combination_That_Minimizes_Variability_in_Means, Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means = Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means))
   } else if (Optimization_Method == "Standard Deviation") {
     Combination_That_Minimizes_Variability_in_Standard_Deviations <- List_of_Possible_Groups[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
@@ -179,6 +184,9 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
     }))
     colnames(Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations) <- "Standard_Deviation"
     Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations <- cbind(Means_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations, Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations)
+    Combination_That_Minimizes_Variability_in_Standard_Deviations <- lapply(Combination_That_Minimizes_Variability_in_Standard_Deviations, function (x) {
+      setNames(x, c(Name_of_Identifiers_to_Return, Name_of_Measurements_to_Return))
+    })
     list(Minimizing_Variability_in_Standard_Deviations = list(Combination_That_Minimizes_Variability_in_Standard_Deviations = Combination_That_Minimizes_Variability_in_Standard_Deviations, Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations = Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations))
   } else if (Optimization_Method == "Both") {
     Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- List_of_Possible_Groups[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
@@ -195,6 +203,9 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
     }))
     colnames(Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations) <- "Standard_Deviation"
     Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- cbind(Means_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations)
+    Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- lapply(Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, function (x) {
+      setNames(x, c(Name_of_Identifiers_to_Return, Name_of_Measurements_to_Return))
+    })
     list(Minimizing_Variability_in_Both_Means_and_Standard_Deviations = list(Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations = Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations = Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations))
   }
 }
