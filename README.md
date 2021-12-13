@@ -20,11 +20,11 @@ This function takes 8 arguments. The first, the second, the fourth, and the fift
 
 `Number_of_Items_in_Each_Group` is the number of experimental units you wish to have in each treatment group. This function assumes that each treatment group contains the same number of experimental units.
 
-`Variable_Weights = rep(1, ncol(cbind(...)))` are the weights given to each of the provided variables in the function. The default value, 'rep(1, ncol(cbind(...)))', ensures that each variable is weighed equally.
+`Variable_Weights = rep(1, ncol(cbind(...)))` are the weights given to each of the provided variables in the function. The default value, `rep(1, ncol(cbind(...)))`, ensures that each variable is weighed equally.
 
-`Mean_Weight = 1` is the weight given to the mean for each variable. If it is preferable that means are less variable than standard deviations, you may opt to make the value of this argument greater than the value of the subsequent argument. The default value, '1', assigns a weight of 1 to means.
+`Mean_Weight = 1` is the weight given to the mean for each variable. If it is preferable that means are less variable than standard deviations, you may opt to make the value of this argument greater than the value of the subsequent argument. The default value, `1`, assigns a weight of 1 to means.
 
-`Standard_Deviation_Weight = 1` is the weight given to the standard deviation for each variable. If it is only necessary to consider and minimize the variability in group means - if variability in standard deviations can be ignored - you may opt to assign the value of 0 to this argument. The default value, '1', assigns a weight of 1 to standard deviations.
+`Standard_Deviation_Weight = 1` is the weight given to the standard deviation for each variable. If it is only necessary to consider and minimize the variability in group means - if variability in standard deviations can be ignored - you may opt to assign the value of 0 to this argument. The default value, `1`, assigns a weight of 1 to standard deviations.
 
 <b>Works Cited</b>
 
