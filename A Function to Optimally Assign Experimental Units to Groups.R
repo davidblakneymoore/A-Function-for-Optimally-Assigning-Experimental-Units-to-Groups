@@ -223,6 +223,8 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
 # We'll try to minimize the variability in means and standard deviations of
 # these two variables across treatment groups.
 
+# It may take a while for this function to run, so be patient.
+
 
 # Generate Some Practice Data
 
