@@ -8,11 +8,13 @@ This function can take more than one measurement variable into account to determ
 
 This function uses the `comboGroups` function from the `RcppAlgos` package in line 112. I hope this function and this package do not change.
 
-This function takes 7 arguments. The first 4 are required.
+This function takes 8 arguments. The first, the second, the fourth, and the fifts are required.
 
 `Identifiers` is a vector containing the names of the potential experimental units.
 
 `...` is a numeric vector, or are numeric vectors, containing the measurements that will be used to optimally assign groups.
+
+`Data_Frame` is an optional data frame to include such that column names can be supplied for the `Identifiers` and the `...` arguments. The data frame that these columns are from should be provided for this `Data_Frame` argument.
 
 `Number_of_Groups` is the number of treatment groups you wish to have.
 
