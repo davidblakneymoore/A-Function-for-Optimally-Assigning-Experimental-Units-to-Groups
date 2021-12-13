@@ -8,7 +8,7 @@ This function can take more than one measurement variable into account to determ
 
 This function uses the `comboGroups` function from the `RcppAlgos` package in line 168. I hope this function and this package do not change.
 
-This function takes 8 arguments. The first, the second, the fourth, and the fifts are required.
+This function takes 8 arguments. The first, second, fourth, and fifth arguments are required.
 
 `Identifiers` is a vector containing the names of the potential experimental units.
 
