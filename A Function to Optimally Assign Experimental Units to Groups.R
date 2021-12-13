@@ -126,7 +126,7 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   Numeric_Measurements <- as.data.frame(Measurements[, sapply(Measurements, function (x) {
     !is.character(x) & !is.factor(x)
   })])
-  colnames(Categorical_Measurements) <- colnames(Measurements)[sapply(Measurements, function (x) {
+  colnames(Numeric_Measurements) <- colnames(Measurements)[sapply(Measurements, function (x) {
     !is.character(x) & !is.factor(x)
   })]
   Number_of_Unique_Categories <- NULL
