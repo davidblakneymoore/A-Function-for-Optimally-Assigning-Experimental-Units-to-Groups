@@ -28,13 +28,18 @@
 # This function uses the 'comboGroups' function from the 'RcppAlgos' package in
 # line 112. I hope this function and this package do not change.
 
-# This function takes 7 arguments. The first 4 are required.
+# This function takes 8 arguments. The first, the second, the fourth, and the
+# fifth are required.
 
 # 'Identifiers' is a vector containing the names of the potential experimental
 # units.
 
 # '...' is a numeric vector, or are numeric vectors, containing the
 # measurements that will be used to optimally assign groups.
+
+# 'Data_Frame' is an optional data frame to include such that column names can
+# be supplied for the 'Identifiers' and '...' arguments. The data frame that
+# these columns are from should be provided for this 'Data_Frame' argument.
 
 # 'Number_of_Groups' is the number of treatment groups you wish to have.
 
@@ -60,7 +65,7 @@
 
 # The Function
 
-Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1) {
+Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1) {
   
   # Load the Required Package
   
@@ -70,18 +75,29 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
   library(RcppAlgos)
   
   
-  # Meet Some Initial Conditions
+  # Format the Inputs
   
-  if (length(Identifiers) != length(unique(Identifiers))) {
-    stop ("Some of the identifiers you provided are the same.")
+  Identifiers_Name <- deparse(substitute(Identifiers))
+  if (!missing(Data_Frame)) {
+    Identifiers <- Data_Frame[deparse(substitute(Identifiers))]
+    Measurements <- sapply(substitute(c(...)), deparse)[-1]
+    Data_Frame <- data.frame(Identifiers, Data_Frame[Measurements])
+  } else if (missing(Data_Frame)) {
+    Data_Frame <- data.frame(Identifiers, ...)
   }
-  if (length(Variable_Weights) != ncol(cbind(...))) {
+  Identifiers <- Data_Frame[, 1]
+  Variable_Names <- colnames(Data_Frame[, 2:ncol(Data_Frame)])
+  
+    
+  # Meet Some Initial Conditions
+
+  if (length(Variable_Weights) != length(Variable_Names)) {
     stop ("'Variable_Weights' must contain as many numbers as there are measurement variables being considered.")
   }
   if (!is.numeric(Variable_Weights) | any(Variable_Weights < 0)) {
     stop ("All variable weights must be numeric and non-negative.")
   }
-  if (!is.numeric(rbind(...))) {
+  if (!all(sapply(Data_Frame[, 2:ncol(Data_Frame)], is.numeric))) {
     stop ("The measurement variables you provide must be numeric.")
   }
   if (!is.numeric(Number_of_Groups)) {
@@ -93,21 +109,18 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
   if (length(Identifiers) < (Number_of_Groups * Number_of_Items_in_Each_Group)) {
     stop ("You don't have enough potential experimental units to have that many groups with that many experimental units in each group.")
   }
+  if (length(Identifiers) != length(unique(Identifiers))) {
+    stop ("Some of the identifiers you provided are the same.")
+  }
 
-  
-  # Format the Inputs
-  
-  Data_Frame <- data.frame(...)
-  Variable_Names <- colnames(Data_Frame)
-  
-  
+
   # Generate All Possible Combinations
-  
+
   Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
-  
-  
+
+
   # Generate All Possible Group Assignments From These Combinations
-  
+
   Possible_Groups <- lapply(Combinations, function (x) {
     RcppAlgos::comboGroups(x, Number_of_Groups)
   })
@@ -123,14 +136,14 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
   List_of_Possible_Groups <- lapply(List_of_Possible_Groups, function (w) {
     lapply(w, function (x) {
       lapply(x, function (y) {
-        z <- Data_Frame[Identifiers %in% y, ]
-        z$Identifiers <- y
-        z[, c(which(colnames(z) == "Identifiers"), which(colnames(z) != "Identifiers"))]
+        z <- Data_Frame[Data_Frame[, Identifiers_Name] %in% y, ]
+        z[, Identifiers_Name] <- y
+        z[, c(which(colnames(z) == Identifiers_Name), which(colnames(z) != Identifiers_Name))]
       })
     })
   })
   
-  
+    
   # Calculate the Means and the Standard Deviations
   
   Means_and_Standard_Deviations <- lapply(List_of_Possible_Groups, function (x) {
@@ -166,10 +179,11 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
       apply(y, 1, mean)
     })
   })
-  
-  
-  # Determine the Variabilities in Means and in Standard Deviations for Each Combination
-  
+
+
+  # Determine the Variabilities in Means and in Standard Deviations for Each
+  # Combination
+
   Relativized_Mean_and_Standard_Deviation_Sums_of_Squares <- mapply(function (a, b) {
     mapply(function (p, q) {
       rowSums((p - q) ^ 2)
@@ -181,10 +195,10 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
       y
     })
   })
-  
-  
+
+
   # Weigh the Means, the Standard Deviations, and the Variables
-  
+
   Weighted_Relativized_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Relativized_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
     lapply(x, function (y) {
       y[grep("^Relativized_Mean", names(y))] <- y[grep("^Relativized_Mean", names(y))] * Mean_Weight
@@ -198,17 +212,17 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
   Total_Relatived_and_Weighted_Sums_of_Squares <- lapply(Weighted_Relativized_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
     sapply(x, sum)
   })
-  
-  
+
+
   # Determine Which Combination is Optimal
-  
+
   Minimum_Total_Relatived_and_Weighted_Sums_of_Squares <- data.frame(Position = sapply(Total_Relatived_and_Weighted_Sums_of_Squares, which.min), Total_Relatived_and_Weighted_Sum_of_Squares = sapply(Total_Relatived_and_Weighted_Sums_of_Squares, min))
   rownames(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares) <- NULL
-  
-  
+
+
   # The Optimal Combination
-  
-  list(Optimal_Combination = List_of_Possible_Groups[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]], Means_and_Standard_Deviations = Means_and_Standard_Deviations[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]])
+
+  list(Optimal_Combination = List_of_Possible_Groups[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]], Means_and_Standard_Deviations_of_the_Optimal_Combination = Means_and_Standard_Deviations[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]])
 }
 
 
@@ -218,12 +232,12 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
 # 14 potential study trees and we want to have 3 treatment groups and 4
 # experimental units in each group. Therefore, we'll only need 12 trees, but
 # it will be nice to have extra trees as options so that we can optimize how
-# similar means and standard deviations of tree diameters are between groups.
-# We'll use both tree diameter and tree height as the measurement variables.
-# We'll try to minimize the variability in means and standard deviations of
-# these two variables across treatment groups.
+# similar means and standard deviations of tree diameters and tree heights are
+# between groups. We'll use both tree diameter and tree height as the
+# measurement variables. We'll try to minimize the variability in means and
+# standard deviations of these two variables across treatment groups.
 
-# It may take a while for this function to run, so be patient.
+# Be patient - this code will probably take a while to run.
 
 
 # Generate Some Practice Data
@@ -231,11 +245,12 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Nu
 Tree_Numbers <- as.character(1:14)
 Diameters <- c(10, 12, 13, 13, 14, 15, 16, 18, 22, 23, 24, 26, 25, 26)
 Heights <- c(45, 55, 53, 42, 44, 44, 46, 57, 58, 55, 53, 58, 60, 62)
+Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height = Heights)
 
 
 # Use the Function
 
-Optimizing_Group_Assignments(Identifiers = Tree_Numbers, Diameters, Heights, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1)
+Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1)
 
 # Here is the output from the preceding line of code:
 
@@ -246,22 +261,22 @@ Optimizing_Group_Assignments(Identifiers = Tree_Numbers, Diameters, Heights, Num
 # 8            8        18      57
 # 10          10        23      55
 # 13          13        25      60
-# 
+#
 # $Optimal_Combination$Group_2
 # Identifiers Diameters Heights
 # 2            2        12      55
 # 7            7        16      46
 # 11          11        24      53
 # 14          14        26      62
-# 
+#
 # $Optimal_Combination$Group_3
 # Identifiers Diameters Heights
 # 3            3        13      53
 # 5            5        14      44
 # 9            9        22      58
 # 12          12        26      58
-# 
-# 
+#
+#
 # $Means_and_Standard_Deviations
 # Group_1   Group_2   Group_3
 # Mean_Diameters               19.000000 19.500000 18.750000
