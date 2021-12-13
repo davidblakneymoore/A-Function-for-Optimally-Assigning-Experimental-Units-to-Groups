@@ -12,7 +12,7 @@ This function takes 8 arguments. The first, the second, the fourth, and the fift
 
 `Identifiers` is a vector containing the names of the potential experimental units.
 
-`...` is a numeric vector, or are numeric vectors, containing the measurements that will be used to optimally assign groups.
+`...` is a vector, or are vectors, containing the  measurements that will be used to optimally assign groups. Although this argument will typically contain numeric data, this argument could contain one or more characer or factor vector or vectors. Dummy variables will be created for categorical variables so that these categories can be optimally split up between groups as well.
 
 `Data_Frame` is an optional data frame to include such that column names can be supplied for the `Identifiers` and the `...` arguments. The data frame that these columns are from should be provided for this `Data_Frame` argument.
 
