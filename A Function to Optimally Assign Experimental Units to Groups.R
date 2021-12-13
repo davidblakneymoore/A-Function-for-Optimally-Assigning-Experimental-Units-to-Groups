@@ -4,7 +4,7 @@
 
 # David Moore
 
-# Dec. 12th, 2021
+# Dec. 13th, 2021
 
 
 # Explanation
@@ -34,8 +34,12 @@
 # 'Identifiers' is a vector containing the names of the potential experimental
 # units.
 
-# '...' is a numeric vector, or are numeric vectors, containing the
-# measurements that will be used to optimally assign groups.
+# '...' is a vector, or are vectors, containing the  measurements that will be
+# used to optimally assign groups. Although this argument will typically
+# contain numeric data, this argument could contain one or more characer or
+# factor vector or vectors - dummy variables will be created for categorical
+# variables so that these categories can be optimally split up between groups
+# as well.
 
 # 'Data_Frame' is an optional data frame to include such that column names can
 # be supplied for the 'Identifiers' and '...' arguments. The data frame that
@@ -86,19 +90,16 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     Data_Frame <- data.frame(Identifiers, ...)
   }
   Identifiers <- Data_Frame[, 1]
-  Variable_Names <- colnames(Data_Frame[, 2:ncol(Data_Frame)])
+  Measurements <- Data_Frame[, 2:ncol(Data_Frame)]
   
     
   # Meet Some Initial Conditions
 
-  if (length(Variable_Weights) != length(Variable_Names)) {
+  if (length(Variable_Weights) != ncol(Measurements)) {
     stop ("'Variable_Weights' must contain as many numbers as there are measurement variables being considered.")
   }
   if (!is.numeric(Variable_Weights) | any(Variable_Weights < 0)) {
     stop ("All variable weights must be numeric and non-negative.")
-  }
-  if (!all(sapply(Data_Frame[, 2:ncol(Data_Frame)], is.numeric))) {
-    stop ("The measurement variables you provide must be numeric.")
   }
   if (!is.numeric(Number_of_Groups)) {
     stop ("'Number_of_Groups' must be numeric.")
@@ -112,10 +113,52 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   if (length(Identifiers) != length(unique(Identifiers))) {
     stop ("Some of the identifiers you provided are the same.")
   }
-
-
+  
+  
+  # Continue Formatting the Inputs
+  
+  Categorical_Measurements <- as.data.frame(Measurements[, sapply(Measurements, function (x) {
+    is.character(x) | is.factor(x)
+  })])
+  colnames(Categorical_Measurements) <- colnames(Measurements)[sapply(Measurements, function (x) {
+    is.character(x) | is.factor(x)
+  })]
+  Numeric_Measurements <- as.data.frame(Measurements[, sapply(Measurements, function (x) {
+    !is.character(x) & !is.factor(x)
+  })])
+  colnames(Categorical_Measurements) <- colnames(Measurements)[sapply(Measurements, function (x) {
+    !is.character(x) & !is.factor(x)
+  })]
+  Number_of_Unique_Categories <- NULL
+  for (i in seq_len(ncol(Categorical_Measurements))) {
+    Number_of_Unique_Categories[i] <- length(unique(Categorical_Measurements[, i]))
+  }
+  Total_Number_of_Unique_Categories <- sum(Number_of_Unique_Categories)
+  Numeric_Variable_Weights <- Variable_Weights[which(sapply(Measurements, function (x) {
+    !is.character(x) & !is.factor(x)
+  }))]
+  Categorical_Variable_Weights <- Variable_Weights[which(sapply(Measurements, function (x) {
+    is.character(x) | is.factor(x)
+  }))]
+  Categorical_Variable_Weights <- unlist(mapply(rep, Categorical_Variable_Weights, Number_of_Unique_Categories))
+  Dummy_Variables <- as.data.frame(matrix(NA, ncol = Total_Number_of_Unique_Categories, nrow = nrow(Data_Frame)))
+  k <- 1
+  for (i in seq_len(ncol(Categorical_Measurements))) {
+    for (j in seq_len(length(unique(Categorical_Measurements[, i])))) {
+      Dummy_Variables[, k] <- ifelse(Categorical_Measurements[, i] == unique(Categorical_Measurements[, i])[j], 1, 0)
+      colnames(Dummy_Variables)[k] <- paste0(colnames(Categorical_Measurements)[i], "_", unique(Categorical_Measurements[, i])[j])
+      k <- k + 1
+    }
+  }
+  Measurements <- data.frame(Numeric_Measurements, Dummy_Variables)
+  Variable_Weights <- c(Numeric_Variable_Weights, Categorical_Variable_Weights)
+  Variable_Names <- colnames(Measurements)
+  Data_Frame <- data.frame(Identifiers, Measurements)
+  colnames(Data_Frame)[1] <- Identifiers_Name
+  
+  
   # Generate All Possible Combinations
-
+  
   Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
 
 
@@ -245,41 +288,48 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
 Tree_Numbers <- as.character(1:14)
 Diameters <- c(10, 12, 13, 13, 14, 15, 16, 18, 22, 23, 24, 26, 25, 26)
 Heights <- c(45, 55, 53, 42, 44, 44, 46, 57, 58, 55, 53, 58, 60, 62)
-Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height = Heights)
+Crown_Classes <- c("Intermediate", "Codominant", "Codominant", "Intermediate", "Codominant", "Codominant", "Codominant", "Dominant", "Codominant", "Codominant", "Codominant", "Dominant", "Dominant", "Dominant")
+Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height = Heights, Crown_Class = Crown_Classes)
 
 
 # Use the Function
 
-Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1)
+Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1)
 
 # Here is the output from the preceding line of code:
 
 # $Optimal_Combination
 # $Optimal_Combination$Group_1
-# Identifiers Diameters Heights
-# 1            1        10      45
-# 8            8        18      57
-# 10          10        23      55
-# 13          13        25      60
-#
+# Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 2            2       12     55                        0                      1                    0
+# 7            7       16     46                        0                      1                    0
+# 9            9       22     58                        0                      1                    0
+# 14          14       26     62                        0                      0                    1
+# 
 # $Optimal_Combination$Group_2
-# Identifiers Diameters Heights
-# 2            2        12      55
-# 7            7        16      46
-# 11          11        24      53
-# 14          14        26      62
-#
+# Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 3            3       13     53                        0                      1                    0
+# 6            6       15     44                        0                      1                    0
+# 10          10       23     55                        0                      1                    0
+# 13          13       25     60                        0                      0                    1
+# 
 # $Optimal_Combination$Group_3
-# Identifiers Diameters Heights
-# 3            3        13      53
-# 5            5        14      44
-# 9            9        22      58
-# 12          12        26      58
-#
-#
-# $Means_and_Standard_Deviations
-# Group_1   Group_2   Group_3
-# Mean_Diameters               19.000000 19.500000 18.750000
-# Mean_Heights                 54.250000 54.000000 53.250000
-# Standard_Deviation_Diameters  6.683313  6.608076  6.291529
-# Standard_Deviation_Heights    6.500000  6.582806  6.601767
+# Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 5            5       14     44                        0                      1                    0
+# 8            8       18     57                        0                      0                    1
+# 11          11       24     53                        0                      1                    0
+# 12          12       26     58                        0                      0                    1
+# 
+# 
+# $Means_and_Standard_Deviations_of_the_Optimal_Combination
+# Group_1   Group_2    Group_3
+# Mean_Diameter                               19.000000 19.000000 20.5000000
+# Mean_Height                                 55.250000 53.000000 53.0000000
+# Mean_Crown_Class_Intermediate                0.000000  0.000000  0.0000000
+# Mean_Crown_Class_Codominant                  0.750000  0.750000  0.5000000
+# Mean_Crown_Class_Dominant                    0.250000  0.250000  0.5000000
+# Standard_Deviation_Diameter                  6.218253  5.887841  5.5075705
+# Standard_Deviation_Height                    6.800735  6.683313  6.3770422
+# Standard_Deviation_Crown_Class_Intermediate  0.000000  0.000000  0.0000000
+# Standard_Deviation_Crown_Class_Codominant    0.500000  0.500000  0.5773503
+# Standard_Deviation_Crown_Class_Dominant      0.500000  0.500000  0.5773503
