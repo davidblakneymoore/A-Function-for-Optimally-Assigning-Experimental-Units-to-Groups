@@ -26,7 +26,7 @@
 # determine the optimal combination.
 
 # This function uses the 'comboGroups' function from the 'RcppAlgos' package in
-# line 168. I hope this function and this package do not change.
+# line 170. I hope this function and this package do not change.
 
 # This function takes 8 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
@@ -117,6 +117,8 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   
   # Continue Formatting the Inputs
   
+  Variable_Metadata <- data.frame(Variable = colnames(Measurements), Weight = Variable_Weights)
+  Parameter_Metadata <- data.frame(Parameter = c("Mean", "Standard_Deviation"), Weight = c(Mean_Weight, Standard_Deviation_Weight))
   Categorical_Measurements <- as.data.frame(Measurements[, sapply(Measurements, function (x) {
     is.character(x) | is.factor(x)
   })])
@@ -264,8 +266,8 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
 
 
   # The Optimal Combination
-
-  list(Optimal_Combination = List_of_Possible_Groups[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]], Means_and_Standard_Deviations_of_the_Optimal_Combination = Means_and_Standard_Deviations[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]])
+  
+  list(Optimal_Combination = List_of_Possible_Groups[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]], Means_and_Standard_Deviations_of_the_Optimal_Combination = Means_and_Standard_Deviations[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]], Variable_Metadata = Variable_Metadata, Parameter_Metadata = Parameter_Metadata)
 }
 
 
@@ -333,3 +335,14 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # Standard_Deviation_Crown_Class_Intermediate  0.000000  0.000000  0.0000000
 # Standard_Deviation_Crown_Class_Codominant    0.500000  0.500000  0.5773503
 # Standard_Deviation_Crown_Class_Dominant      0.500000  0.500000  0.5773503
+# 
+# $Variable_Metadata
+#      Variable Weight
+# 1    Diameter      1
+# 2      Height      1
+# 3 Crown_Class      1
+# 
+# $Parameter_Metadata
+#            Parameter Weight
+# 1               Mean      2
+# 2 Standard_Deviation      1
