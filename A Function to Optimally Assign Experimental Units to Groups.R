@@ -29,7 +29,7 @@
 # line 168. I hope this function and this package do not change.
 
 # This function takes 8 arguments. The first, the second, the fourth, and the
-# fifth are required.
+# fifth arguments are required.
 
 # 'Identifiers' is a vector containing the names of the potential experimental
 # units.
@@ -300,21 +300,21 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 
 # $Optimal_Combination
 # $Optimal_Combination$Group_1
-# Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+#    Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 2            2       12     55                        0                      1                    0
 # 7            7       16     46                        0                      1                    0
 # 9            9       22     58                        0                      1                    0
 # 14          14       26     62                        0                      0                    1
 # 
 # $Optimal_Combination$Group_2
-# Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+#    Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 3            3       13     53                        0                      1                    0
 # 6            6       15     44                        0                      1                    0
 # 10          10       23     55                        0                      1                    0
 # 13          13       25     60                        0                      0                    1
 # 
 # $Optimal_Combination$Group_3
-# Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+#    Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 5            5       14     44                        0                      1                    0
 # 8            8       18     57                        0                      0                    1
 # 11          11       24     53                        0                      1                    0
@@ -322,7 +322,7 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # 
 # 
 # $Means_and_Standard_Deviations_of_the_Optimal_Combination
-# Group_1   Group_2    Group_3
+#                                               Group_1   Group_2    Group_3
 # Mean_Diameter                               19.000000 19.000000 20.5000000
 # Mean_Height                                 55.250000 53.000000 53.0000000
 # Mean_Crown_Class_Intermediate                0.000000  0.000000  0.0000000
