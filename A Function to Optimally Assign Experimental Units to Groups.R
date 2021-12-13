@@ -1,16 +1,16 @@
 
 # A Function to Optimize Group Assignments by Minimizing the Variability in
-# Group Means and Standard Deviations
+# Group Means and Standard Deviations of One or More Variables
 
 # David Moore
 
-# Dec. 7th, 2021
+# Dec. 12th, 2021
 
 
 # Explanation
 
 # To assign experimental units to treatments, it might be worthwhile to ensure
-# that means or standard deviations (or both) of some variable that defines
+# that means or standard deviations (or both) of some variables that define
 # experimental units are as equal as possible between treatment groups. This
 # function takes measurements from potential experimental units and assigns
 # treatment groups that equalize means, standard deviations, and both means and
@@ -22,13 +22,45 @@
 # number of treatment groups you'll have and the number of experimental units
 # you'll have in each group.
 
+# This function can take more than one measurement variable into account to
+# determine the optimal combination.
+
 # This function uses the 'comboGroups' function from the 'RcppAlgos' package in
-# line 94. I hope this function and this package don't change.
+# line 112. I hope this function and this package do not change.
+
+# This function takes 7 arguments. The first 4 are required.
+
+# 'Identifiers' is a vector containing the names of the potential experimental
+# units.
+
+# '...' is a numeric vector, or are numeric vectors, containing the
+# measurements that will be used to optimally assign groups.
+
+# 'Number_of_Groups' is the number of treatment groups you wish to have.
+
+# 'Number_of_Items_in_Each_Group' is the number of experimental units you wish
+# to have in each treatment group. This function assumes that each treatment
+# group contains the same number of experimental units.
+
+# 'Variable_Weights = rep(1, ncol(cbind(...)))' are the weights given to each
+# of the provided variables in the function. The default value,
+# 'rep(1, ncol(cbind(...)))', ensures that each variable is weighed equally.
+
+# 'Mean_Weight = 1' is the weight given to the mean for each variable. If it is
+# preferable that means are less variable than standard deviations, you may opt
+# to make the value of this argument greater than the value of the subsequent
+# argument. The default value, '1', assigns a weight of 1 to means.
+
+# 'Standard_Deviation_Weight = 1' is the weight given to the standard deviation
+# for each variable. If it is only necessary to consider and minimize the
+# variability in group means - if variability in standard deviations can be
+# ignored - you may opt to assign the value of 0 to this argument. The default
+# value, '1', assigns a weight of 1 to standard deviations.
 
 
 # The Function
 
-Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Optimization_Method = "Both") {
+Optimizing_Group_Assignments <- function (Identifiers, ..., Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1) {
   
   # Load the Required Package
   
@@ -36,38 +68,21 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
     install.packages('RcppAlgos')
   }
   library(RcppAlgos)
-
-  
-  # Format the Input
-  
-  Name_of_Identifiers_to_Return <- substitute(Identifiers)
-  Name_of_Measurements_to_Return <- substitute(Measurements)
-  if (!missing(Data_Frame)) {
-    Identifiers <- as.character(Data_Frame[[deparse(substitute(Identifiers))]])
-    Measurements <- Data_Frame[[deparse(substitute(Measurements))]]
-  } else if (missing(Data_Frame)) {
-    Identifiers <- as.character(Identifiers)
-    Measurements <- Measurements
-  }
-  Number_of_Observations_Used <- Number_of_Groups * Number_of_Items_in_Each_Group
   
   
   # Meet Some Initial Conditions
   
-  if (missing(Identifiers)) {
-    stop ("Please provide a vector of names for the potential experimental units.")
+  if (length(Identifiers) != length(unique(Identifiers))) {
+    stop ("Some of the identifiers you provided are the same.")
   }
-  if (missing(Measurements)) {
-    stop ("Please provide a vector of measurements.")
+  if (length(Variable_Weights) != ncol(cbind(...))) {
+    stop ("'Variable_Weights' must contain as many numbers as there are measurement variables being considered.")
   }
-  if (missing(Number_of_Groups)) {
-    stop ("Please specify the desired number of groups.")
+  if (!is.numeric(Variable_Weights) | any(Variable_Weights < 0)) {
+    stop ("All variable weights must be numeric and non-negative.")
   }
-  if (missing(Number_of_Items_in_Each_Group)) {
-    stop ("Please specify how many experimental units will be in each group.")
-  }
-  if (!is.numeric(Measurements)) {
-    stop ("'Measurements' must be numeric.")
+  if (!is.numeric(rbind(...))) {
+    stop ("The measurement variables you provide must be numeric.")
   }
   if (!is.numeric(Number_of_Groups)) {
     stop ("'Number_of_Groups' must be numeric.")
@@ -78,14 +93,17 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   if (length(Identifiers) < (Number_of_Groups * Number_of_Items_in_Each_Group)) {
     stop ("You don't have enough potential experimental units to have that many groups with that many experimental units in each group.")
   }
-  if (!(Optimization_Method %in% c("Mean", "Standard Deviation", "Both"))) {
-    stop ("'Optimization_Method' must be either 'Mean', 'Standard Deviation', or 'Both'.")
-  }
+
+  
+  # Format the Inputs
+  
+  Data_Frame <- data.frame(...)
+  Variable_Names <- colnames(Data_Frame)
   
   
   # Generate All Possible Combinations
   
-  Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Observations_Used)))
+  Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
   
   
   # Generate All Possible Group Assignments From These Combinations
@@ -105,31 +123,45 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   List_of_Possible_Groups <- lapply(List_of_Possible_Groups, function (w) {
     lapply(w, function (x) {
       lapply(x, function (y) {
-        z <- Measurements[Identifiers %in% y]
-        data.frame(Identifiers = y, Measurements = z)
+        z <- Data_Frame[Identifiers %in% y, ]
+        z$Identifiers <- y
+        z[, c(which(colnames(z) == "Identifiers"), which(colnames(z) != "Identifiers"))]
       })
     })
   })
   
   
-  # Calculate Means and Standard Deviations
+  # Calculate the Means and the Standard Deviations
   
   Means_and_Standard_Deviations <- lapply(List_of_Possible_Groups, function (x) {
     lapply(x, function (y) {
       sapply(y, function (z) {
-        Mean <- mean(z$Measurements)
-        Standard_Deviation <- sd(z$Measurements)
-        c(Mean, Standard_Deviation)
+        Means <- sapply(z[, 2:ncol(z)], mean)
+        names(Means) <- paste0("Mean_", names(Means))
+        Standard_Deviations <- sapply(z[, 2:ncol(z)], sd)
+        names(Standard_Deviations) <- paste0("Standard_Deviation_", names(Standard_Deviations))
+        c(Means, Standard_Deviations)
       })
     })
   })
-  Means_and_Standard_Deviations <- lapply(Means_and_Standard_Deviations, function (x) {
+  Maximum_Means_and_Standard_Deviations <- lapply(Means_and_Standard_Deviations, function (x) {
     lapply(x, function (y) {
-      rownames(y) <- c("Mean", "Standard_Deviation")
-      y
+      apply(as.data.frame(t(as.matrix(y))), 2, max)
     })
   })
-  Average_Means_and_Standard_Deviations <- lapply(Means_and_Standard_Deviations, function (x) {
+  Maximum_Means_and_Standard_Deviations <- lapply(Maximum_Means_and_Standard_Deviations, function (x) {
+    as.data.frame(do.call('rbind', x))
+  })
+  Maximum_Means_and_Standard_Deviations <- as.data.frame(do.call('rbind', Maximum_Means_and_Standard_Deviations))
+  Maximum_Means_and_Standard_Deviations <- sapply(Maximum_Means_and_Standard_Deviations, max)
+  Relativized_Means_and_Standard_Deviations <- lapply(Means_and_Standard_Deviations, function (x) {
+    lapply(x, function (y) {
+      z <- y / Maximum_Means_and_Standard_Deviations
+      rownames(z) <- paste0("Relativized_", rownames(z))
+      z
+    })
+  })
+  Average_Relativized_Means_and_Standard_Deviations <- lapply(Relativized_Means_and_Standard_Deviations, function (x) {
     lapply(x, function (y) {
       apply(y, 1, mean)
     })
@@ -138,105 +170,99 @@ Optimizing_Group_Assignments <- function (Identifiers, Measurements, Data_Frame,
   
   # Determine the Variabilities in Means and in Standard Deviations for Each Combination
   
-  Mean_and_Standard_Deviation_Sums_of_Squares <- mapply(function (p, q) {
-    mapply(function (x, y) {
-      unlist(mapply(function (a, b) {
-        sum((a - b) ^ 2)
-      }, a = as.list(as.data.frame(t(x))), b = y, SIMPLIFY = F))
-    }, x = p, y = q, SIMPLIFY = F)
-  }, p = Means_and_Standard_Deviations, q = Average_Means_and_Standard_Deviations, SIMPLIFY = F)
-  Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-    as.data.frame(t(as.data.frame(x)))
-  })
-  Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-    colnames(x) <- paste0(colnames(x), "_Sum_of_Squares")
-    x
-  })
-  Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-    x$Relativized_Mean_Sum_of_Squares <- (x$Mean_Sum_of_Squares - mean(x$Mean_Sum_of_Squares)) / mean(x$Mean_Sum_of_Squares)
-    x$Relativized_Standard_Deviation_Sum_of_Squares <- (x$Standard_Deviation_Sum_of_Squares - mean(x$Standard_Deviation_Sum_of_Squares)) / mean(x$Standard_Deviation_Sum_of_Squares)
-    x$Sum_of_the_Relativized_Mean_Sum_of_Squares_and_the_Relativized_Standard_Deviation_Sum_of_Squares <- x$Relativized_Mean_Sum_of_Squares + x$Relativized_Standard_Deviation_Sum_of_Squares
-    x
+  Relativized_Mean_and_Standard_Deviation_Sums_of_Squares <- mapply(function (a, b) {
+    mapply(function (p, q) {
+      rowSums((p - q) ^ 2)
+    }, p = a, q = b, SIMPLIFY = F)
+  }, a = Relativized_Means_and_Standard_Deviations, b = Average_Relativized_Means_and_Standard_Deviations, SIMPLIFY = F)
+  Relativized_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Relativized_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
+    lapply(x, function (y) {
+      names(y) <- paste0(names(y), "_Sums_of_Squares")
+      y
+    })
   })
   
   
-  # Determine the Minimum Variabilities and Generate the Final Output
+  # Weigh the Means, the Standard Deviations, and the Variables
   
-  if (Optimization_Method == "Mean") {
-    Combination_That_Minimizes_Variability_in_Means <- List_of_Possible_Groups[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-      sapply(x, min)['Mean_Sum_of_Squares']
-    }))]][[sapply(Mean_and_Standard_Deviation_Sums_of_Squares[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-      sapply(x, min)['Mean_Sum_of_Squares']
-    }))]], which.min)['Mean_Sum_of_Squares']]]
-    Means_of_the_Combination_That_Minimizes_Variability_in_Means <- as.data.frame(sapply(Combination_That_Minimizes_Variability_in_Means, function (x) {
-      mean(x$Measurements)
-    }))
-    colnames(Means_of_the_Combination_That_Minimizes_Variability_in_Means) <- "Mean"
-    Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means <- as.data.frame(sapply(Combination_That_Minimizes_Variability_in_Means, function (x) {
-      sd(x$Measurements)
-    }))
-    colnames(Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means) <- "Standard_Deviation"
-    Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means <- cbind(Means_of_the_Combination_That_Minimizes_Variability_in_Means, Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means)
-    Combination_That_Minimizes_Variability_in_Means <- lapply(Combination_That_Minimizes_Variability_in_Means, function (x) {
-      setNames(x, c(Name_of_Identifiers_to_Return, Name_of_Measurements_to_Return))
+  Weighted_Relativized_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Relativized_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
+    lapply(x, function (y) {
+      y[grep("^Relativized_Mean", names(y))] <- y[grep("^Relativized_Mean", names(y))] * Mean_Weight
+      y[grep("^Relativized_Standard_Deviation", names(y))] <- y[grep("^Relativized_Standard_Deviation", names(y))] * Standard_Deviation_Weight
+      for (i in seq_len(length(Variable_Weights))) {
+        y[union(grep(paste0("^Relativized_Mean_", Variable_Names[i], "_Sums_of_Squares"), names(y)), grep(paste0("^Relativized_Standard_Deviation_", Variable_Names[i], "_Sums_of_Squares"), names(y)))] <- y[union(grep(paste0("^Relativized_Mean_", Variable_Names[i], "_Sums_of_Squares"), names(y)), grep(paste0("^Relativized_Standard_Deviation_", Variable_Names[i], "_Sums_of_Squares"), names(y)))] * Variable_Weights[i]
+      }
+      y
     })
-    list(Minimizing_Variability_in_Means = list(Combination_That_Minimizes_Variability_in_Means = Combination_That_Minimizes_Variability_in_Means, Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means = Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Means))
-  } else if (Optimization_Method == "Standard Deviation") {
-    Combination_That_Minimizes_Variability_in_Standard_Deviations <- List_of_Possible_Groups[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-      sapply(x, min)['Standard_Deviation_Sum_of_Squares']
-    }))]][[sapply(Mean_and_Standard_Deviation_Sums_of_Squares[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-      sapply(x, min)['Standard_Deviation_Sum_of_Squares']
-    }))]], which.min)['Standard_Deviation_Sum_of_Squares']]]
-    Means_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations <- as.data.frame(sapply(Combination_That_Minimizes_Variability_in_Standard_Deviations, function (x) {
-      mean(x$Measurements)
-    }))
-    colnames(Means_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations) <- "Mean"
-    Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations <- as.data.frame(sapply(Combination_That_Minimizes_Variability_in_Standard_Deviations, function (x) {
-      sd(x$Measurements)
-    }))
-    colnames(Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations) <- "Standard_Deviation"
-    Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations <- cbind(Means_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations, Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations)
-    Combination_That_Minimizes_Variability_in_Standard_Deviations <- lapply(Combination_That_Minimizes_Variability_in_Standard_Deviations, function (x) {
-      setNames(x, c(Name_of_Identifiers_to_Return, Name_of_Measurements_to_Return))
-    })
-    list(Minimizing_Variability_in_Standard_Deviations = list(Combination_That_Minimizes_Variability_in_Standard_Deviations = Combination_That_Minimizes_Variability_in_Standard_Deviations, Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations = Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Standard_Deviations))
-  } else if (Optimization_Method == "Both") {
-    Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- List_of_Possible_Groups[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-      sapply(x, min)['Sum_of_the_Relativized_Mean_Sum_of_Squares_and_the_Relativized_Standard_Deviation_Sum_of_Squares']
-    }))]][[sapply(Mean_and_Standard_Deviation_Sums_of_Squares[[which.min(sapply(Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-      sapply(x, min)['Sum_of_the_Relativized_Mean_Sum_of_Squares_and_the_Relativized_Standard_Deviation_Sum_of_Squares']
-    }))]], which.min)['Sum_of_the_Relativized_Mean_Sum_of_Squares_and_the_Relativized_Standard_Deviation_Sum_of_Squares']]]
-    Means_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- as.data.frame(sapply(Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, function (x) {
-      mean(x$Measurements)
-    }))
-    colnames(Means_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations) <- "Mean"
-    Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- as.data.frame(sapply(Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, function (x) {
-      sd(x$Measurements)
-    }))
-    colnames(Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations) <- "Standard_Deviation"
-    Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- cbind(Means_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations)
-    Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations <- lapply(Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, function (x) {
-      setNames(x, c(Name_of_Identifiers_to_Return, Name_of_Measurements_to_Return))
-    })
-    list(Minimizing_Variability_in_Both_Means_and_Standard_Deviations = list(Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations = Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations, Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations = Means_and_Standard_Deviations_of_the_Combination_That_Minimizes_Variability_in_Both_Means_and_Standard_Deviations))
-  }
+  })
+  Total_Relatived_and_Weighted_Sums_of_Squares <- lapply(Weighted_Relativized_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
+    sapply(x, sum)
+  })
+  
+  
+  # Determine Which Combination is Optimal
+  
+  Minimum_Total_Relatived_and_Weighted_Sums_of_Squares <- data.frame(Position = sapply(Total_Relatived_and_Weighted_Sums_of_Squares, which.min), Total_Relatived_and_Weighted_Sum_of_Squares = sapply(Total_Relatived_and_Weighted_Sums_of_Squares, min))
+  rownames(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares) <- NULL
+  
+  
+  # The Optimal Combination
+  
+  list(Optimal_Combination = List_of_Possible_Groups[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]], Means_and_Standard_Deviations = Means_and_Standard_Deviations[[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]][[Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Position[which.min(Minimum_Total_Relatived_and_Weighted_Sums_of_Squares$Total_Relatived_and_Weighted_Sum_of_Squares)]]])
 }
 
+
+# Test the Function Out
 
 # Let's try to use this function on some made-up data. Let's pretend we have
 # 14 potential study trees and we want to have 3 treatment groups and 4
 # experimental units in each group. Therefore, we'll only need 12 trees, but
 # it will be nice to have extra trees as options so that we can optimize how
 # similar means and standard deviations of tree diameters are between groups.
+# We'll use both tree diameter and tree height as the measurement variables.
+# We'll try to minimize the variability in means and standard deviations of
+# these two variables across treatment groups.
 
 
-# Generate some practice data
+# Generate Some Practice Data
 
-Tree_Number <- as.character(1:14)
-Diameter <- c(10, 12, 13, 13, 14, 15, 16, 18, 22, 23, 24, 26, 25, 22)
-Tree_Data <- data.frame(Tree_Number = Tree_Number, Diameter = Diameter)
+Tree_Numbers <- as.character(1:14)
+Diameters <- c(10, 12, 13, 13, 14, 15, 16, 18, 22, 23, 24, 26, 25, 26)
+Heights <- c(45, 55, 53, 42, 44, 44, 46, 57, 58, 55, 53, 58, 60, 62)
 
 
-# Let's try the function out.
+# Use the Function
 
-Optimizing_Group_Assignments(Identifiers = Tree_Number, Measurements = Diameter, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Optimization_Method = "Both")
+Optimizing_Group_Assignments(Identifiers = Tree_Numbers, Diameters, Heights, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1)
+
+# Here is the output from the preceding line of code:
+
+# $Optimal_Combination
+# $Optimal_Combination$Group_1
+# Identifiers Diameters Heights
+# 1            1        10      45
+# 8            8        18      57
+# 10          10        23      55
+# 13          13        25      60
+# 
+# $Optimal_Combination$Group_2
+# Identifiers Diameters Heights
+# 2            2        12      55
+# 7            7        16      46
+# 11          11        24      53
+# 14          14        26      62
+# 
+# $Optimal_Combination$Group_3
+# Identifiers Diameters Heights
+# 3            3        13      53
+# 5            5        14      44
+# 9            9        22      58
+# 12          12        26      58
+# 
+# 
+# $Means_and_Standard_Deviations
+# Group_1   Group_2   Group_3
+# Mean_Diameters               19.000000 19.500000 18.750000
+# Mean_Heights                 54.250000 54.000000 53.250000
+# Standard_Deviation_Diameters  6.683313  6.608076  6.291529
+# Standard_Deviation_Heights    6.500000  6.582806  6.601767
