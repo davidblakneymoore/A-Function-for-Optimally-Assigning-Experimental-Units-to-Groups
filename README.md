@@ -4,7 +4,7 @@ To assign experimental units to treatments, it might be worthwhile to ensure tha
 
 Furthermore, if you have more potential experimental units than you need for your project, this function will optimally determine which experimental units best equalize means and standard deviations based on the number of treatment groups you'll have and the number of experimental units you'll have in each group.
 
-This function can take more than one measurement variable into account to determine the optimal combination.
+This function can take more than one measurement variable into account to determine the optimal combination. It can also handle both numeric and categorical variables. Categorical variables are converted into dummy variables to ensure that categories are split up equally across groups.
 
 This function uses the `comboGroups` function from the `RcppAlgos` package in line 168. I hope this function and this package do not change.
 
