@@ -8,7 +8,7 @@ This function can take more than one measurement variable into account to determ
 
 This function rescales each measurement variable to a standard normal distribution by subtracting the colun mean from each measurement and then by dividing by the column standard deviation. By rescaling the measurements, it's possible to compare mean and standard deviation variability between groups between measurements.
 
-This function uses the `comboGroups` function from the `RcppAlgos` package in line 185. I hope this function and this package do not change.
+This function uses the `comboGroups` function from the `RcppAlgos` package in line 189. I hope this function and this package do not change.
 
 This function takes 8 arguments. The first, second, fourth, and fifth arguments are required.
 
@@ -27,6 +27,8 @@ This function takes 8 arguments. The first, second, fourth, and fifth arguments 
 `Mean_Weight = 1` is the weight given to the mean for each variable. If it is preferable that means are less variable than standard deviations, you may opt to make the value of this argument greater than the value of the subsequent argument. The default value, `1`, assigns a weight of 1 to means.
 
 `Standard_Deviation_Weight = 1` is the weight given to the standard deviation for each variable. If it is only necessary to consider and minimize the variability in group means - if variability in standard deviations can be ignored - you may opt to assign the value of 0 to this argument. The default value, `1`, assigns a weight of 1 to standard deviations.
+
+`Number_of"Combinations_to_Report` is the number of combinations reported. Combinations are reported in order starting with the combination that has the least variabillity in means and standard deviations.
 
 <b>Works Cited</b>
 
