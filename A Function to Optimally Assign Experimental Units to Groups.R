@@ -4,7 +4,7 @@
 
 # David Moore
 
-# Dec. 13th, 2021
+# Dec. 18th, 2021
 
 
 # Explanation
@@ -32,9 +32,9 @@
 # groups between measurements.
 
 # This function uses the 'comboGroups' function from the 'RcppAlgos' package in
-# line 185. I hope this function and this package do not change.
+# line 192. I hope this function and this package do not change.
 
-# This function takes 8 arguments. The first, the second, the fourth, and the
+# This function takes 9 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
 
 # 'Identifiers' is a vector containing the names of the potential experimental
@@ -72,10 +72,14 @@
 # ignored - you may opt to assign the value of 0 to this argument. The default
 # value, '1', assigns a weight of 1 to standard deviations.
 
+# 'Number_of_Combinations_to_Report' is the number of combinations reported.
+# Combinations are reported in order starting with the combination that has the
+# least variabillity in means and standard deviations.
+
 
 # The Function
 
-Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1) {
+Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 1) {
   
   # Load the Required Package
   
@@ -85,22 +89,16 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   library(RcppAlgos)
   
   
-  # Format the Inputs
+  # Format the Inputs and Meet Some Initial Conditions
   
-  Identifiers_Name <- deparse(substitute(Identifiers))
+  Identifiers_Name <- gsub("^.*[$]", "", deparse(substitute(Identifiers)))
   if (!missing(Data_Frame)) {
-    Identifiers <- Data_Frame[deparse(substitute(Identifiers))]
-    Measurements <- sapply(substitute(c(...)), deparse)[-1]
-    Data_Frame <- data.frame(Identifiers, Data_Frame[Measurements])
+    Data_Frame <- Data_Frame[, c(Identifiers_Name, sapply(substitute(c(...)), deparse)[-1])]
   } else if (missing(Data_Frame)) {
     Data_Frame <- data.frame(Identifiers, ...)
   }
   Identifiers <- Data_Frame[, 1]
   Measurements <- Data_Frame[, 2:ncol(Data_Frame)]
-  
-    
-  # Meet Some Initial Conditions
-
   if (length(Variable_Weights) != ncol(Measurements)) {
     stop ("'Variable_Weights' must contain as many numbers as there are measurement variables being considered.")
   }
@@ -119,10 +117,19 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   if (length(Identifiers) != length(unique(Identifiers))) {
     stop ("Some of the identifiers you provided are the same.")
   }
-  
-  
-  # Continue Formatting the Inputs
-  
+  if (length(Number_of_Combinations_to_Report) != 1 | !is.numeric(Number_of_Combinations_to_Report) | Number_of_Combinations_to_Report < 0) {
+    stop ("'Number_of_Combinations_to_Report' must be a single positive integer.")
+  }
+  if (Number_of_Combinations_to_Report %% 1 > 0.5) {
+    Remainder <- 1 - (Number_of_Combinations_to_Report %% 1)
+  } else if (Number_of_Combinations_to_Report %% 1 <= 0.5) {
+    Remainder <- Number_of_Combinations_to_Report %% 1
+  }
+  if (Remainder > 0.05) {
+    stop ("'Number_of_Combinations_to_Report' must be a positive integer.")
+  } else if (Remainder <= 0.05) {
+    Number_of_Combinations_to_Report <- as.integer(round(Number_of_Combinations_to_Report))
+  }
   Variable_Metadata <- data.frame(Variable = colnames(Measurements), Weight = Variable_Weights)
   Parameter_Metadata <- data.frame(Parameter = c("Mean", "Standard_Deviation"), Weight = c(Mean_Weight, Standard_Deviation_Weight))
   Categorical_Measurements <- as.data.frame(Measurements[, sapply(Measurements, function (x) {
@@ -226,7 +233,6 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
       })
     })
   })
-  
   Average_Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_Means_and_Standard_Deviations, function (x) {
     lapply(x, function (y) {
       apply(y, 1, mean)
@@ -254,11 +260,15 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   
   Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
     lapply(x, function (y) {
-      y[grep("^Rescaled_Mean", names(y))] <- y[grep("^Rescaled_Mean", names(y))] * Mean_Weight
-      y[grep("^Rescaled_Standard_Deviation_", names(y))] <- y[grep("^Rescaled_Standard_Deviation_", names(y))] * Standard_Deviation_Weight
-      for (i in seq_len(length(Variable_Weights))) {
-        y[union(grep(paste0("^Rescaled_Mean", Variable_Names[i], "_Sums_of_Squares"), names(y)), grep(paste0("^Rescaled_Standard_Deviation_", Variable_Names[i], "_Sums_of_Squares"), names(y)))] <- y[union(grep(paste0("^Rescaled_Mean", Variable_Names[i], "_Sums_of_Squares"), names(y)), grep(paste0("^Rescaled_Standard_Deviation_", Variable_Names[i], "_Sums_of_Squares"), names(y)))] * Variable_Weights[i]
+      z <- names(y)
+      y <- ifelse(grepl("^Rescaled_Mean", z), y * Mean_Weight, y)
+      y <- ifelse(grepl("^Rescaled_Standard_Deviation", z), y * Standard_Deviation_Weight, y)
+      for (i in seq_len(length(y))) {
+        for (j in seq_len(length(Variable_Names))) {
+          y[i] <- ifelse(z[i] == paste0("Rescaled_Mean_", Variable_Names[j], "_Sums_of_Squares") | z[i] == paste0("Rescaled_Standard_Deviation_", Variable_Names[j], "_Sums_of_Squares"), y[i] * Variable_Weights[j], y[i])
+        }
       }
+      names(y) <- z
       y
     })
   })
@@ -267,35 +277,66 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   })
   
   
-  # Determine Which Combination is Optimal
+  # Determine Which Combinations Are Optimal
   
-  Minimum_Total_Weighted_Rescaled_Sums_of_Squares <- data.frame(Position = sapply(Total_Weighted_Rescaled_Sums_of_Squares, which.min), Total_Weighted_Rescaled_Sum_of_Squares = sapply(Total_Weighted_Rescaled_Sums_of_Squares, min))
-  rownames(Minimum_Total_Weighted_Rescaled_Sums_of_Squares) <- NULL
+  Best_Positions <- lapply(Total_Weighted_Rescaled_Sums_of_Squares, function (x) {
+    Position <- order(x)[seq_len(Number_of_Combinations_to_Report)]
+    Total_Weighted_Rescaled_Sum_of_Squares <- x[order(x)][seq_len(Number_of_Combinations_to_Report)]
+    y <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = Total_Weighted_Rescaled_Sum_of_Squares, Position = Position)
+    rownames(y) <- NULL
+    y
+  })
+  All_Best_Combinations <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = unlist(lapply(Best_Positions, function (x) {
+    x$Total_Weighted_Rescaled_Sum_of_Squares
+  })), Position = unlist(lapply(Best_Positions, function (x) {
+    x$Position
+  })))
+  rownames(All_Best_Combinations) <- NULL
+  Best_Combinations_Positions <- order(All_Best_Combinations$Total_Weighted_Rescaled_Sum_of_Squares)[seq_len(Number_of_Combinations_to_Report)]
   
   
-  # The Optimal Combination
+  # Generate the Final Output
   
-  Optimal_Combination <- Original_List_of_Possible_Groups[[which.min(Minimum_Total_Weighted_Rescaled_Sums_of_Squares$Total_Weighted_Rescaled_Sum_of_Squares)]][[Minimum_Total_Weighted_Rescaled_Sums_of_Squares$Position[which.min(Minimum_Total_Weighted_Rescaled_Sums_of_Squares$Total_Weighted_Rescaled_Sum_of_Squares)]]]
-  Optimal_Combination <- lapply(Optimal_Combination, function(x) {
-    rownames(x) <- NULL
+  Best_Combinations <- lapply(seq_len(Number_of_Combinations_to_Report), function (x) {
+    Original_List_of_Possible_Groups[[((Best_Combinations_Positions[x] - 1) %/% Number_of_Combinations_to_Report) + 1]][All_Best_Combinations$Position[Best_Combinations_Positions[x]]]
+  })
+  names(Best_Combinations) <- paste0("Optimal_Combination_", seq_len(Number_of_Combinations_to_Report))
+  Best_Combinations <- lapply(Best_Combinations, function (x) {
+    names(x) <- NULL
     x
   })
-  Means_and_Standard_Deviations_of_the_Optimal_Combination <- as.data.frame(sapply(Optimal_Combination, function (z) {
-    Means <- sapply(z[, 2:ncol(z)], mean)
-    names(Means) <- paste0("Mean_", names(Means))
-    Standard_Deviations <- sapply(z[, 2:ncol(z)], sd)
-    names(Standard_Deviations) <- paste0("Standard_Deviation_", names(Standard_Deviations))
-    c(Means, Standard_Deviations)
-  }))
-  Means_and_Standard_Deviations_of_the_Optimal_Combination$Variable <- gsub("Mean_|Standard_Deviation_", "", rownames(Means_and_Standard_Deviations_of_the_Optimal_Combination))
-  Parameters <- unlist(mapply(function (x, y) {
-    sub(y, "", x)
-  }, x = rownames(Means_and_Standard_Deviations_of_the_Optimal_Combination), y = paste0("_", gsub("Mean_|Standard_Deviation_", "", rownames(Means_and_Standard_Deviations_of_the_Optimal_Combination))), SIMPLIFY = F))
-  names(Parameters) <- NULL
-  Means_and_Standard_Deviations_of_the_Optimal_Combination$Parameter <- Parameters
-  rownames(Means_and_Standard_Deviations_of_the_Optimal_Combination) <- NULL
-  Means_and_Standard_Deviations_of_the_Optimal_Combination <- Means_and_Standard_Deviations_of_the_Optimal_Combination[, c(which(colnames(Means_and_Standard_Deviations_of_the_Optimal_Combination) == "Variable"), which(colnames(Means_and_Standard_Deviations_of_the_Optimal_Combination) == "Parameter"), grep("Group", colnames(Means_and_Standard_Deviations_of_the_Optimal_Combination)))]
-  list(Optimal_Combination = Optimal_Combination, Means_and_Standard_Deviations_of_the_Optimal_Combination = Means_and_Standard_Deviations_of_the_Optimal_Combination, Variable_Metadata = Variable_Metadata, Parameter_Metadata = Parameter_Metadata)
+  Best_Combinations <- lapply(Best_Combinations, function (x) {
+    unlist(x, recursive = FALSE)
+  })
+  Best_Combinations <- lapply(Best_Combinations, function (x) {
+    lapply(x, function (y) {
+      rownames(y) <- NULL
+      y
+    })
+  })
+  Means_and_Standard_Deviations_of_the_Optimal_Combinations <- lapply(Best_Combinations, function (x) {
+    as.data.frame(lapply(x, function (y) {
+      Means <- sapply(y[, 2:ncol(y)], mean)
+      names(Means) <- paste0("Mean_", names(Means))
+      Standard_Deviations <- sapply(y[, 2:ncol(y)], sd)
+      names(Standard_Deviations) <- paste0("Standard_Deviation_", names(Standard_Deviations))
+      c(Means, Standard_Deviations)
+    }))
+  })
+  Means_and_Standard_Deviations_of_the_Optimal_Combinations <- lapply(Means_and_Standard_Deviations_of_the_Optimal_Combinations, function (x) {
+    x$Variable <- gsub("Mean_|Standard_Deviation_", "", rownames(x))
+    x$Parameter <- unlist(mapply(function (a, b) {
+      sub(b, "", a)
+    }, a = rownames(x), b = paste0("_", gsub("Mean_|Standard_Deviation_", "", rownames(x))), SIMPLIFY = F))
+    rownames(x) <- NULL
+    x[, c(which(colnames(x) == "Variable"), which(colnames(x) == "Parameter"), grep("Group", colnames(x)))]
+  })
+  names(Means_and_Standard_Deviations_of_the_Optimal_Combinations) <- paste0(names(Means_and_Standard_Deviations_of_the_Optimal_Combinations), "_Means_and_Standard_Deviations")
+  Optimal_Combinations <- lapply(seq_len(Number_of_Combinations_to_Report), function (x) {
+    c(Best_Combinations[x], Means_and_Standard_Deviations_of_the_Optimal_Combinations[x])
+  })
+  Optimal_Combinations <- unlist(Optimal_Combinations, recursive = FALSE)
+  list(Optimal_Combinations = Optimal_Combinations, Variable_Metadata = Variable_Metadata, Parameter_Metadata = Parameter_Metadata)
 }
 
 
@@ -324,26 +365,27 @@ Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height
 
 # Use the Function
 
-Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1)
+Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 3)
 
 # Here is the output from the preceding line of code:
 
-# $Optimal_Combination
-# $Optimal_Combination$Group_1
+# $Optimal_Combinations
+# $Optimal_Combinations$Optimal_Combination_1
+# $Optimal_Combinations$Optimal_Combination_1$Group_1
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           2       12     55                        0                      1                    0
 # 2           7       16     46                        0                      1                    0
 # 3          11       24     53                        0                      1                    0
 # 4          14       26     62                        0                      0                    1
 # 
-# $Optimal_Combination$Group_2
+# $Optimal_Combinations$Optimal_Combination_1$Group_2
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           3       13     53                        0                      1                    0
 # 2           6       15     44                        0                      1                    0
 # 3           9       22     58                        0                      1                    0
 # 4          12       26     58                        0                      0                    1
 # 
-# $Optimal_Combination$Group_3
+# $Optimal_Combinations$Optimal_Combination_1$Group_3
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           5       14     44                        0                      1                    0
 # 2           8       18     57                        0                      0                    1
@@ -351,7 +393,7 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # 4          13       25     60                        0                      0                    1
 # 
 # 
-# $Means_and_Standard_Deviations_of_the_Optimal_Combination
+# $Optimal_Combinations$Optimal_Combination_1_Means_and_Standard_Deviations
 #                    Variable          Parameter   Group_1   Group_2    Group_3
 # 1                  Diameter               Mean 19.500000 19.000000 20.0000000
 # 2                    Height               Mean 54.000000 53.250000 54.0000000
@@ -363,6 +405,79 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
 # 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
 # 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
+# 
+# $Optimal_Combinations$Optimal_Combination_2
+# $Optimal_Combinations$Optimal_Combination_2$Group_1
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           2       12     55                        0                      1                    0
+# 2           7       16     46                        0                      1                    0
+# 3          11       24     53                        0                      1                    0
+# 4          13       25     60                        0                      0                    1
+# 
+# $Optimal_Combinations$Optimal_Combination_2$Group_2
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           3       13     53                        0                      1                    0
+# 2           6       15     44                        0                      1                    0
+# 3          10       23     55                        0                      1                    0
+# 4          14       26     62                        0                      0                    1
+# 
+# $Optimal_Combinations$Optimal_Combination_2$Group_3
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           5       14     44                        0                      1                    0
+# 2           8       18     57                        0                      0                    1
+# 3           9       22     58                        0                      1                    0
+# 4          12       26     58                        0                      0                    1
+# 
+# 
+# $Optimal_Combinations$Optimal_Combination_2_Means_and_Standard_Deviations
+#                    Variable          Parameter   Group_1   Group_2    Group_3
+# 1                  Diameter               Mean 19.250000 19.250000 20.0000000
+# 2                    Height               Mean 53.500000 53.500000 54.2500000
+# 3  Crown_Class_Intermediate               Mean  0.000000  0.000000  0.0000000
+# 4    Crown_Class_Codominant               Mean  0.750000  0.750000  0.5000000
+# 5      Crown_Class_Dominant               Mean  0.250000  0.250000  0.5000000
+# 6                  Diameter Standard_Deviation  6.291529  6.238322  5.1639778
+# 7                    Height Standard_Deviation  5.802298  7.416198  6.8495742
+# 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
+# 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
+# 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
+# 
+# $Optimal_Combinations$Optimal_Combination_3
+# $Optimal_Combinations$Optimal_Combination_3$Group_1
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           2       12     55                        0                      1                    0
+# 2           6       15     44                        0                      1                    0
+# 3          10       23     55                        0                      1                    0
+# 4          13       25     60                        0                      0                    1
+# 
+# $Optimal_Combinations$Optimal_Combination_3$Group_2
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           3       13     53                        0                      1                    0
+# 2           7       16     46                        0                      1                    0
+# 3          11       24     53                        0                      1                    0
+# 4          14       26     62                        0                      0                    1
+# 
+# $Optimal_Combinations$Optimal_Combination_3$Group_3
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           5       14     44                        0                      1                    0
+# 2           8       18     57                        0                      0                    1
+# 3           9       22     58                        0                      1                    0
+# 4          12       26     58                        0                      0                    1
+# 
+# 
+# $Optimal_Combinations$Optimal_Combination_3_Means_and_Standard_Deviations
+#                    Variable          Parameter   Group_1   Group_2    Group_3
+# 1                  Diameter               Mean 18.750000 19.750000 20.0000000
+# 2                    Height               Mean 53.500000 53.500000 54.2500000
+# 3  Crown_Class_Intermediate               Mean  0.000000  0.000000  0.0000000
+# 4    Crown_Class_Codominant               Mean  0.750000  0.750000  0.5000000
+# 5      Crown_Class_Dominant               Mean  0.250000  0.250000  0.5000000
+# 6                  Diameter Standard_Deviation  6.238322  6.238322  5.1639778
+# 7                    Height Standard_Deviation  6.757712  6.557439  6.8495742
+# 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
+# 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
+# 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
+# 
 # 
 # $Variable_Metadata
 #      Variable Weight
