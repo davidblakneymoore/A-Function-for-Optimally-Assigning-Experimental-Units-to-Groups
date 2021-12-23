@@ -7,7 +7,7 @@
 # Dec. 18th, 2021
 
 
-# Explanation
+# Explain This Function
 
 # To assign experimental units to treatments, it might be worthwhile to ensure
 # that means or standard deviations (or both) of some variables that define
@@ -31,10 +31,10 @@
 # it's possible to compare mean and standard deviation variability between
 # groups between measurements.
 
-# This function uses the 'comboGroups' function from the 'RcppAlgos' package in
-# line 192. I hope this function and this package do not change.
+# This function optionally uses the 'comboGroups' function from the 'RcppAlgos'
+# package on line 193.
 
-# This function takes 9 arguments. The first, the second, the fourth, and the
+# This function takes 10 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
 
 # 'Identifiers' is a vector containing the names of the potential experimental
@@ -76,19 +76,19 @@
 # Combinations are reported in order starting with the combination that has the
 # least variabillity in means and standard deviations.
 
+# 'Use_the_RcppAlgos_Package = TRUE' takes a logical value and signifies
+# whether or not the 'comboGroups' function from the 'RcppAlgos' package should
+# be used to generate group assignments. It is slightly faster to use the
+# 'comboGroups' function than it is to use 'base' functions only. The default
+# value, 'TRUE', uses this 'comboGroups' function. If the 'RcppAlgos' package
+# or the 'comboGroups' function change, set this argument to 'FALSE' to ensure
+# that this function for optimally assigning items to groups will still work.
+
 
 # The Function
 
-Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 1) {
-  
-  # Load the Required Package
-  
-  if (!require(RcppAlgos)) {
-    install.packages('RcppAlgos')
-  }
-  library(RcppAlgos)
-  
-  
+Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 1, Use_the_RcppAlgos_Package = TRUE) {
+
   # Format the Inputs and Meet Some Initial Conditions
   
   Identifiers_Name <- gsub("^.*[$]", "", deparse(substitute(Identifiers)))
@@ -181,133 +181,176 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   Rescaled_Data <- Rescaled_Data[, c(which(colnames(Rescaled_Data) == Identifiers_Name), which(colnames(Rescaled_Data) != Identifiers_Name))]
   
   
-  # Generate All Possible Combinations
-  
-  Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
-  
-  
   # Generate All Possible Group Assignments From These Combinations
   
-  Possible_Groups <- lapply(Combinations, function (x) {
-    RcppAlgos::comboGroups(x, Number_of_Groups)
-  })
-  Possible_Groups <- lapply(Possible_Groups, function (x) {
-    colnames(x) <- gsub("Grp", "Group_", colnames(x))
-    x
-  })
-  List_of_Possible_Groups <- lapply(Possible_Groups, function (x) {
-    lapply(as.list(as.data.frame(t(x))), function (y) {
-      split(y, colnames(x))
+  if (Use_the_RcppAlgos_Package) {
+    if (!require(RcppAlgos)) {
+      install.packages('RcppAlgos')
+    }
+    library(RcppAlgos)
+    Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
+    Possible_Groups <- lapply(Combinations, function (x) {
+      RcppAlgos::comboGroups(x, Number_of_Groups)
     })
-  })
-  Original_List_of_Possible_Groups <- lapply(List_of_Possible_Groups, function (w) {
-    lapply(w, function (x) {
-      lapply(x, function (y) {
-        z <- Data_Frame[Data_Frame[, Identifiers_Name] %in% y, ]
-        z[, Identifiers_Name] <- y
-        z[, c(which(colnames(z) == Identifiers_Name), which(colnames(z) != Identifiers_Name))]
+    Possible_Groups <- lapply(Possible_Groups, function (x) {
+      colnames(x) <- gsub("Grp", "Group_", colnames(x))
+      x
+    })
+    List_of_Possible_Groups <- lapply(Possible_Groups, function (x) {
+      lapply(as.list(as.data.frame(t(x))), function (y) {
+        split(y, colnames(x))
       })
+    })
+    List_of_Possible_Groups <- unlist(List_of_Possible_Groups, recursive = F)
+    names(List_of_Possible_Groups) <- NULL
+  } else if (!Use_the_RcppAlgos_Package) {
+    Output <- vector(mode = 'list', length = Number_of_Groups)
+    Possible_Groups_Function <- function (x) {
+      if (is.list(x)) {
+        lapply(x, Possible_Groups_Function)
+      } else if (!is.list(x)) {
+        as.list(as.data.frame(combn(x, Number_of_Items_in_Each_Group)))
+      }
+    }
+    Remaining_Items_Function <- function (x, y) {
+      if (!is.list(y)) {
+        lapply(x, function (z) {
+          setdiff(y, z)
+        })
+      } else if (is.list(y)) {
+        mapply(Remaining_Items_Function, x = x, y = y, SIMPLIFY = F)
+      }
+    }
+    All_Possible_Groups_Function <- function (x) {
+      for (i in seq_len(Number_of_Groups - 1)) {
+        if (i == 1) {
+          Group_Possibilities <- Possible_Groups_Function(x)
+        } else if (i > 1) {
+          Group_Possibilities <- Possible_Groups_Function(Remaining_Items)
+        }
+        Output[[i]] <- Group_Possibilities
+        if (!all(sapply(Group_Possibilities, is.list))) {
+          Remaining_Items <- lapply(Group_Possibilities, function (y) {
+            setdiff(x, y)
+          })
+        } else if (all(sapply(Group_Possibilities, is.list))) {
+          Remaining_Items <- Remaining_Items_Function(Group_Possibilities, Remaining_Items)
+        }
+      }
+      if (Number_of_Groups == 1) {
+        Output[[Number_of_Groups]] <- Possible_Groups_Function(x)
+      } else if (Number_of_Groups > 1) {
+        Output[[Number_of_Groups]] <- Possible_Groups_Function(Remaining_Items)
+      }
+      Output
+    }
+    All_Possible_Groups <- All_Possible_Groups_Function(Identifiers)
+    Repitition_Times <- choose(length(Identifiers) - (Number_of_Items_in_Each_Group * (0:(Number_of_Groups - 1))), Number_of_Items_in_Each_Group)
+    Repitition_Times <- c(Repitition_Times[2:length(Repitition_Times)], 1)
+    Repitition_Times <- lapply((length(Repitition_Times) - seq_len(length(Repitition_Times))) + 1, function (x) {
+      rev(Repitition_Times)[1:x]
+    })
+    Repitition_Times <- lapply(Repitition_Times, function (y) {
+      Reduce(`*`, y)
+    })
+    All_Possible_Groups <- lapply(All_Possible_Groups, function (x) {
+      z <- unlist(lapply(x, function (z){
+        if (is.atomic(z)){
+          list(z)
+        } else if (!is.atomic(z)) {
+          z
+        }
+      }), recursive = F)
+      while(any(sapply(z, is.list))){
+        z <- Unnest_Lists_Function_2(z)
+      }
+      z
+    })
+    All_Possible_Groups <- mapply(function (x, y) {
+      x[rep(seq_len(length(x)), each = y)]
+    }, x = All_Possible_Groups, y = Repitition_Times, SIMPLIFY = F)
+    All_Possible_Groups <- lapply(seq_len(unique(sapply(All_Possible_Groups, length))), function (x) {
+      lapply(All_Possible_Groups,"[[", x)
+    })
+    List_of_Possible_Groups <- lapply(All_Possible_Groups, function (x) {
+      names(x) <- paste0("Group_", seq_len(Number_of_Groups))
+      x
+    })
+    names(List_of_Possible_Groups) <- NULL
+  }
+  Original_List_of_Possible_Groups <- lapply(List_of_Possible_Groups, function (w) {
+    lapply(w, function (y) {
+      z <- Data_Frame[Data_Frame[, Identifiers_Name] %in% y, ]
+      z[, Identifiers_Name] <- y
+      z[, c(which(colnames(z) == Identifiers_Name), which(colnames(z) != Identifiers_Name))]
     })
   })
   Rescaled_List_of_Possible_Groups <- lapply(List_of_Possible_Groups, function (w) {
-    lapply(w, function (x) {
-      lapply(x, function (y) {
-        z <- Rescaled_Data[Rescaled_Data[, Identifiers_Name] %in% y, ]
-        z[, Identifiers_Name] <- y
-        z[, c(which(colnames(z) == Identifiers_Name), which(colnames(z) != Identifiers_Name))]
-      })
+    lapply(w, function (y) {
+      z <- Rescaled_Data[Rescaled_Data[, Identifiers_Name] %in% y, ]
+      z[, Identifiers_Name] <- y
+      z[, c(which(colnames(z) == Identifiers_Name), which(colnames(z) != Identifiers_Name))]
     })
   })
-  
-  
+
+    
   # Calculate the Rescaled Means and the Standard Deviations
   
-  Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_List_of_Possible_Groups, function (x) {
-    lapply(x, function (y) {
-      sapply(y, function (z) {
-        Means <- sapply(z[, 2:ncol(z)], mean)
-        names(Means) <- paste0("Rescaled_Mean_", names(Means))
-        Standard_Deviations <- sapply(z[, 2:ncol(z)], sd)
-        names(Standard_Deviations) <- paste0("Rescaled_Standard_Deviation_", names(Standard_Deviations))
-        c(Means, Standard_Deviations)
-      })
+  Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_List_of_Possible_Groups, function (y) {
+    sapply(y, function (z) {
+      Means <- sapply(z[, 2:ncol(z)], mean)
+      names(Means) <- paste0("Rescaled_Mean_", names(Means))
+      Standard_Deviations <- sapply(z[, 2:ncol(z)], sd)
+      names(Standard_Deviations) <- paste0("Rescaled_Standard_Deviation_", names(Standard_Deviations))
+      c(Means, Standard_Deviations)
     })
   })
   Average_Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_Means_and_Standard_Deviations, function (x) {
-    lapply(x, function (y) {
-      apply(y, 1, mean)
-    })
+    apply(x, 1, mean)
   })
+
   
-  
-  # Determine the Variabilities in Rescaled Means and in Standard Deviations for
-  # Each Combination
-  
+  # Determine the Variabilities in Rescaled Means and in Standard Deviations
+  # for Each Combination
+
   Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- mapply(function (a, b) {
-    mapply(function (p, q) {
-      rowSums((p - q) ^ 2)
-    }, p = a, q = b, SIMPLIFY = F)
+    rowSums((a - b) ^ 2)
   }, a = Rescaled_Means_and_Standard_Deviations, b = Average_Rescaled_Means_and_Standard_Deviations, SIMPLIFY = F)
-  Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-    lapply(x, function (y) {
-      names(y) <- paste0(names(y), "_Sums_of_Squares")
-      y
-    })
+  Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (y) {
+    names(y) <- paste0(names(y), "_Sums_of_Squares")
+    y
   })
-  
-  
+
+    
   # Weigh the Means, the Standard Deviations, and the Variables
-  
-  Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-    lapply(x, function (y) {
-      z <- names(y)
-      y <- ifelse(grepl("^Rescaled_Mean", z), y * Mean_Weight, y)
-      y <- ifelse(grepl("^Rescaled_Standard_Deviation", z), y * Standard_Deviation_Weight, y)
-      for (i in seq_len(length(y))) {
-        for (j in seq_len(length(Variable_Names))) {
-          y[i] <- ifelse(z[i] == paste0("Rescaled_Mean_", Variable_Names[j], "_Sums_of_Squares") | z[i] == paste0("Rescaled_Standard_Deviation_", Variable_Names[j], "_Sums_of_Squares"), y[i] * Variable_Weights[j], y[i])
-        }
+
+  Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (y) {
+    z <- names(y)
+    y <- ifelse(grepl("^Rescaled_Mean", z), y * Mean_Weight, y)
+    y <- ifelse(grepl("^Rescaled_Standard_Deviation", z), y * Standard_Deviation_Weight, y)
+    for (i in seq_len(length(y))) {
+      for (j in seq_len(length(Variable_Names))) {
+        y[i] <- ifelse(z[i] == paste0("Rescaled_Mean_", Variable_Names[j], "_Sums_of_Squares") | z[i] == paste0("Rescaled_Standard_Deviation_", Variable_Names[j], "_Sums_of_Squares"), y[i] * Variable_Weights[j], y[i])
       }
-      names(y) <- z
-      y
-    })
+    }
+    names(y) <- z
+    y
   })
-  Total_Weighted_Rescaled_Sums_of_Squares <- lapply(Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (x) {
-    sapply(x, sum)
-  })
+  Total_Weighted_Rescaled_Sums_of_Squares <- sapply(Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, sum)
   
   
   # Determine Which Combinations Are Optimal
   
-  Best_Positions <- lapply(Total_Weighted_Rescaled_Sums_of_Squares, function (x) {
-    Position <- order(x)[seq_len(Number_of_Combinations_to_Report)]
-    Total_Weighted_Rescaled_Sum_of_Squares <- x[order(x)][seq_len(Number_of_Combinations_to_Report)]
-    y <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = Total_Weighted_Rescaled_Sum_of_Squares, Position = Position)
-    rownames(y) <- NULL
-    y
-  })
-  All_Best_Combinations <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = unlist(lapply(Best_Positions, function (x) {
-    x$Total_Weighted_Rescaled_Sum_of_Squares
-  })), Position = unlist(lapply(Best_Positions, function (x) {
-    x$Position
-  })))
-  rownames(All_Best_Combinations) <- NULL
-  Best_Combinations_Positions <- order(All_Best_Combinations$Total_Weighted_Rescaled_Sum_of_Squares)[seq_len(Number_of_Combinations_to_Report)]
+  Position <- order(Total_Weighted_Rescaled_Sums_of_Squares)[seq_len(Number_of_Combinations_to_Report)]
+  Total_Weighted_Rescaled_Sum_of_Squares <- Total_Weighted_Rescaled_Sums_of_Squares[order(Total_Weighted_Rescaled_Sums_of_Squares)][seq_len(Number_of_Combinations_to_Report)]
+  Best_Positions <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = Total_Weighted_Rescaled_Sum_of_Squares, Position = Position)
+  rownames(Best_Positions) <- NULL
   
   
   # Generate the Final Output
   
-  Best_Combinations <- lapply(seq_len(Number_of_Combinations_to_Report), function (x) {
-    Original_List_of_Possible_Groups[[((Best_Combinations_Positions[x] - 1) %/% Number_of_Combinations_to_Report) + 1]][All_Best_Combinations$Position[Best_Combinations_Positions[x]]]
-  })
+  Best_Combinations <- Original_List_of_Possible_Groups[Best_Positions$Position[seq_len(Number_of_Combinations_to_Report)]]
   names(Best_Combinations) <- paste0("Optimal_Combination_", seq_len(Number_of_Combinations_to_Report))
-  Best_Combinations <- lapply(Best_Combinations, function (x) {
-    names(x) <- NULL
-    x
-  })
-  Best_Combinations <- lapply(Best_Combinations, function (x) {
-    unlist(x, recursive = FALSE)
-  })
   Best_Combinations <- lapply(Best_Combinations, function (x) {
     lapply(x, function (y) {
       rownames(y) <- NULL
@@ -365,7 +408,7 @@ Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height
 
 # Use the Function
 
-Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 3)
+Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 3, Use_the_RcppAlgos_Package = F)
 
 # Here is the output from the preceding line of code:
 
