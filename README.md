@@ -8,9 +8,9 @@ This function can take more than one measurement variable into account to determ
 
 This function rescales each measurement variable to a standard normal distribution by subtracting the colun mean from each measurement and then by dividing by the column standard deviation. By rescaling the measurements, it's possible to compare mean and standard deviation variability between groups between measurements.
 
-This function uses the `comboGroups` function from the `RcppAlgos` package in line 192. I hope this function and this package do not change.
+This function uses the `comboGroups` function from the `RcppAlgos` package in line 193.
 
-This function takes 8 arguments. The first, second, fourth, and fifth arguments are required.
+This function takes 10 arguments. The first, second, fourth, and fifth arguments are required.
 
 `Identifiers` is a vector containing the names of the potential experimental units.
 
@@ -29,6 +29,8 @@ This function takes 8 arguments. The first, second, fourth, and fifth arguments 
 `Standard_Deviation_Weight = 1` is the weight given to the standard deviation for each variable. If it is only necessary to consider and minimize the variability in group means - if variability in standard deviations can be ignored - you may opt to assign the value of 0 to this argument. The default value, `1`, assigns a weight of 1 to standard deviations.
 
 `Number_of_Combinations_to_Report` is the number of combinations reported. Combinations are reported in order starting with the combination that has the least variabillity in means and standard deviations.
+
+`Use_the_RcppAlgos_Package = TRUE` takes a logical value and signifies whether or not the 'comboGroups' function from the `RcppAlgos` package should be used to generate group assignments. It is slightly faster to use the `comboGroups` function than it is to use `base` functions only. The default value, `TRUE`, uses this `comboGroups` function. If the `RcppAlgos` package or the `comboGroups` function change, set this argument to `FALSE` to ensure that this function for optimally assigning items to groups will still work.
 
 <b>Works Cited</b>
 
