@@ -25,14 +25,15 @@
 # This function can take more than one measurement variable into account to
 # determine the optimal combination.
 
-# This function rescales each measurement variable to a standard normal
-# distribution by subtracting the colun mean from each measurement and then by
-# dividing by the column standard deviation. By rescaling the measurements,
-# it's possible to compare mean and standard deviation variability between
-# groups between measurements.
+# Before splitting items up into groups, this function rescales each
+# measurement variable to a standard normal distribution by subtracting the
+# column mean from each measurement and then by dividing by the column
+# standard deviation. By rescaling the measurements, it's possible to compare
+# mean and standard deviation variability between groups between measurements
+# later on.
 
 # This function optionally uses the 'comboGroups' function from the 'RcppAlgos'
-# package on line 193.
+# package on line 194.
 
 # This function takes 10 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
