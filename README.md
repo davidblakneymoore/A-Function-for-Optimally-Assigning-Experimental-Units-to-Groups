@@ -8,7 +8,7 @@ This function can take more than one measurement variable into account to determ
 
 Before splitting items up into groups, this function first rescales each measurement variable to a standard normal distribution by subtracting the column mean from each measurement and then by dividing by the column standard deviation. By rescaling the measurements, it's possible to compare mean and standard deviation variability between groups between measurements later on.
 
-This function optionally uses the `comboGroups` function from the `RcppAlgos` package in line 193.
+This function optionally uses the `comboGroups` function from the `RcppAlgos` package.
 
 This function takes 10 arguments. The first, second, fourth, and fifth arguments are required.
 
