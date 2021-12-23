@@ -455,47 +455,47 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # 1           2       12     55                        0                      1                    0
 # 2           7       16     46                        0                      1                    0
 # 3          11       24     53                        0                      1                    0
-# 4          13       25     60                        0                      0                    1
+# 4          14       26     62                        0                      0                    1
 # 
 # $Optimal_Combinations$Optimal_Combination_2$Group_2
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           3       13     53                        0                      1                    0
-# 2           6       15     44                        0                      1                    0
+# 1           5       14     44                        0                      1                    0
+# 2           8       18     57                        0                      0                    1
 # 3          10       23     55                        0                      1                    0
-# 4          14       26     62                        0                      0                    1
+# 4          13       25     60                        0                      0                    1
 # 
 # $Optimal_Combinations$Optimal_Combination_2$Group_3
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           5       14     44                        0                      1                    0
-# 2           8       18     57                        0                      0                    1
+# 1           3       13     53                        0                      1                    0
+# 2           6       15     44                        0                      1                    0
 # 3           9       22     58                        0                      1                    0
 # 4          12       26     58                        0                      0                    1
 # 
 # 
 # $Optimal_Combinations$Optimal_Combination_2_Means_and_Standard_Deviations
-#                    Variable          Parameter   Group_1   Group_2    Group_3
-# 1                  Diameter               Mean 19.250000 19.250000 20.0000000
-# 2                    Height               Mean 53.500000 53.500000 54.2500000
-# 3  Crown_Class_Intermediate               Mean  0.000000  0.000000  0.0000000
-# 4    Crown_Class_Codominant               Mean  0.750000  0.750000  0.5000000
-# 5      Crown_Class_Dominant               Mean  0.250000  0.250000  0.5000000
-# 6                  Diameter Standard_Deviation  6.291529  6.238322  5.1639778
-# 7                    Height Standard_Deviation  5.802298  7.416198  6.8495742
-# 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
-# 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
-# 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
+#                    Variable          Parameter   Group_1    Group_2   Group_3
+# 1                  Diameter               Mean 19.500000 20.0000000 19.000000
+# 2                    Height               Mean 54.000000 54.0000000 53.250000
+# 3  Crown_Class_Intermediate               Mean  0.000000  0.0000000  0.000000
+# 4    Crown_Class_Codominant               Mean  0.750000  0.5000000  0.750000
+# 5      Crown_Class_Dominant               Mean  0.250000  0.5000000  0.250000
+# 6                  Diameter Standard_Deviation  6.608076  4.9665548  6.055301
+# 7                    Height Standard_Deviation  6.582806  6.9761498  6.601767
+# 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.0000000  0.000000
+# 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.5773503  0.500000
+# 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.5773503  0.500000
 # 
 # $Optimal_Combinations$Optimal_Combination_3
 # $Optimal_Combinations$Optimal_Combination_3$Group_1
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           2       12     55                        0                      1                    0
+# 1           3       13     53                        0                      1                    0
 # 2           6       15     44                        0                      1                    0
-# 3          10       23     55                        0                      1                    0
-# 4          13       25     60                        0                      0                    1
+# 3           9       22     58                        0                      1                    0
+# 4          12       26     58                        0                      0                    1
 # 
 # $Optimal_Combinations$Optimal_Combination_3$Group_2
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           3       13     53                        0                      1                    0
+# 1           2       12     55                        0                      1                    0
 # 2           7       16     46                        0                      1                    0
 # 3          11       24     53                        0                      1                    0
 # 4          14       26     62                        0                      0                    1
@@ -504,19 +504,19 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           5       14     44                        0                      1                    0
 # 2           8       18     57                        0                      0                    1
-# 3           9       22     58                        0                      1                    0
-# 4          12       26     58                        0                      0                    1
+# 3          10       23     55                        0                      1                    0
+# 4          13       25     60                        0                      0                    1
 # 
 # 
 # $Optimal_Combinations$Optimal_Combination_3_Means_and_Standard_Deviations
 #                    Variable          Parameter   Group_1   Group_2    Group_3
-# 1                  Diameter               Mean 18.750000 19.750000 20.0000000
-# 2                    Height               Mean 53.500000 53.500000 54.2500000
+# 1                  Diameter               Mean 19.000000 19.500000 20.0000000
+# 2                    Height               Mean 53.250000 54.000000 54.0000000
 # 3  Crown_Class_Intermediate               Mean  0.000000  0.000000  0.0000000
 # 4    Crown_Class_Codominant               Mean  0.750000  0.750000  0.5000000
 # 5      Crown_Class_Dominant               Mean  0.250000  0.250000  0.5000000
-# 6                  Diameter Standard_Deviation  6.238322  6.238322  5.1639778
-# 7                    Height Standard_Deviation  6.757712  6.557439  6.8495742
+# 6                  Diameter Standard_Deviation  6.055301  6.608076  4.9665548
+# 7                    Height Standard_Deviation  6.601767  6.582806  6.9761498
 # 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
 # 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
 # 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
