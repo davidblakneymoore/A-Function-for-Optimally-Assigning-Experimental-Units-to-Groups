@@ -33,7 +33,7 @@
 # later on.
 
 # This function optionally uses the 'comboGroups' function from the 'RcppAlgos'
-# package on line 194.
+# package on line 190.
 
 # This function takes 10 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
@@ -185,10 +185,6 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   # Generate All Possible Group Assignments From These Combinations
   
   if (Use_the_RcppAlgos_Package) {
-    if (!require(RcppAlgos)) {
-      install.packages('RcppAlgos')
-    }
-    library(RcppAlgos)
     Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
     Possible_Groups <- lapply(Combinations, function (x) {
       RcppAlgos::comboGroups(x, Number_of_Groups)
