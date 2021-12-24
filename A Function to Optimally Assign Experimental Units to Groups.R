@@ -13,8 +13,8 @@
 # that means or standard deviations (or both) of some variables that define
 # experimental units are as equal as possible between treatment groups. This
 # function takes measurements from potential experimental units and assigns
-# treatment groups that equalize means, standard deviations, and both means and
-# standard deviations as much as possible.
+# treatment groups that equalize means and standard deviations as much as
+# possible.
 
 # Furthermore, if you have more potential experimental units than you need for
 # your study or experiment, this function will optimally determine which
