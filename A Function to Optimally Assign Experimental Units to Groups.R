@@ -13,8 +13,8 @@
 # that means or standard deviations (or both) of some variables that define
 # experimental units are as equal as possible between treatment groups. This
 # function takes measurements from potential experimental units and assigns
-# treatment groups that equalize means and standard deviations as much as
-# possible.
+# treatment groups that equalize means, standard deviations, and both means and
+# standard deviations as much as possible.
 
 # Furthermore, if you have more potential experimental units than you need for
 # your study or experiment, this function will optimally determine which
@@ -23,22 +23,16 @@
 # you'll have in each group.
 
 # This function can take more than one measurement variable into account to
-# determine the optimal combination. It can also handle both numeric and
-# categorical variables. Categorical variables are converted into dummy
-# variables to ensure that categories are split up equally across groups, and
-# weights associated with each categorical variable are divide by the number
-# of groups to ensure that categorical variables are not weighted more heavily
-# than they were intended to be.
+# determine the optimal combination.
 
-# Before splitting items up into groups, this function rescales each
-# measurement variable to a standard normal distribution by subtracting the
-# column mean from each measurement and then by dividing by the column
-# standard deviation. By rescaling the measurements, it's possible to compare
-# mean and standard deviation variability between groups between measurements
-# later on.
+# This function rescales each measurement variable to a standard normal
+# distribution by subtracting the colun mean from each measurement and then by
+# dividing by the column standard deviation. By rescaling the measurements,
+# it's possible to compare mean and standard deviation variability between
+# groups between measurements.
 
 # This function optionally uses the 'comboGroups' function from the 'RcppAlgos'
-# package on line 195.
+# package on line 189.
 
 # This function takes 10 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
@@ -96,7 +90,7 @@
 Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 1, Use_the_RcppAlgos_Package = TRUE) {
 
   # Format the Inputs and Meet Some Initial Conditions
-  
+
   Identifiers_Name <- gsub("^.*[$]", "", deparse(substitute(Identifiers)))
   if (!missing(Data_Frame)) {
     Data_Frame <- Data_Frame[, c(Identifiers_Name, sapply(substitute(c(...)), deparse)[-1])]
@@ -176,19 +170,19 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   Variable_Names <- colnames(Measurements)
   Data_Frame <- data.frame(Identifiers, Measurements)
   colnames(Data_Frame)[1] <- Identifiers_Name
-  
-  
+
+
   # Rescale the Data by Column to Facilitate Comparisons Between Columns
-  
+
   Rescaled_Data <- as.data.frame(lapply(Data_Frame[, 2:ncol(Data_Frame)], function (x) {
     (x - mean(x)) / sd(x)
   }))
   Rescaled_Data[, Identifiers_Name] <- Data_Frame[, Identifiers_Name]
   Rescaled_Data <- Rescaled_Data[, c(which(colnames(Rescaled_Data) == Identifiers_Name), which(colnames(Rescaled_Data) != Identifiers_Name))]
-  
-  
+
+
   # Generate All Possible Group Assignments From These Combinations
-  
+
   if (Use_the_RcppAlgos_Package) {
     Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
     Possible_Groups <- lapply(Combinations, function (x) {
@@ -255,22 +249,21 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     Repitition_Times <- lapply(Repitition_Times, function (y) {
       Reduce(`*`, y)
     })
-    All_Possible_Groups <- lapply(All_Possible_Groups, function (x) {
-      z <- unlist(lapply(x, function (z){
-        if (is.atomic(z)){
-          list(z)
-        } else if (!is.atomic(z)) {
-          z
-        }
-      }), recursive = F)
-      while(any(sapply(z, is.list))){
-        z <- Unnest_Lists_Function_2(z)
+    All_Possible_Groups <- lapply(All_Possible_Groups, function(x) {
+      z <- sapply(x, function (y) {
+        class(y)[1] == "list"
+      })
+      w <- c(x[!z], unlist(x[z], recursive = F))
+      if (sum(z)){
+        Recall(w)
+      } else if (!sum(z)) {
+        w
       }
-      z
     })
     All_Possible_Groups <- mapply(function (x, y) {
       x[rep(seq_len(length(x)), each = y)]
     }, x = All_Possible_Groups, y = Repitition_Times, SIMPLIFY = F)
+
     All_Possible_Groups <- lapply(seq_len(unique(sapply(All_Possible_Groups, length))), function (x) {
       lapply(All_Possible_Groups,"[[", x)
     })
@@ -279,6 +272,25 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
       x
     })
     names(List_of_Possible_Groups) <- NULL
+    Ordered_List_of_Possible_Groups_1 <- lapply(List_of_Possible_Groups, function (x) {
+      lapply(x, sort)
+    })
+    Ordered_List_of_Possible_Groups_2 <- lapply(Ordered_List_of_Possible_Groups_1, function (x) {
+      order(sapply(x, function (y) {
+        y[1]
+      }))
+    })
+    Ordered_List_of_Possible_Groups_1 <- mapply(function (x, y) {
+      x[y]
+    }, x = Ordered_List_of_Possible_Groups_1, y = Ordered_List_of_Possible_Groups_2, SIMPLIFY = F)
+    Ordered_List_of_Possible_Groups_1 <- lapply(Ordered_List_of_Possible_Groups_1, function (x) {
+      do.call('c', x)
+    })
+    Ordered_List_of_Possible_Groups_1 <- lapply(Ordered_List_of_Possible_Groups_1, function (x) {
+      names(x) <- NULL
+      x
+    })
+    List_of_Possible_Groups <- List_of_Possible_Groups[-c(which(duplicated(Ordered_List_of_Possible_Groups_1)))]
   }
   Original_List_of_Possible_Groups <- lapply(List_of_Possible_Groups, function (w) {
     lapply(w, function (y) {
@@ -295,9 +307,9 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     })
   })
 
-    
+
   # Calculate the Rescaled Means and the Standard Deviations
-  
+
   Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_List_of_Possible_Groups, function (y) {
     sapply(y, function (z) {
       Means <- sapply(z[, 2:ncol(z)], mean)
@@ -311,7 +323,7 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     apply(x, 1, mean)
   })
 
-  
+
   # Determine the Variabilities in Rescaled Means and in Standard Deviations
   # for Each Combination
 
@@ -323,7 +335,7 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     y
   })
 
-    
+
   # Weigh the Means, the Standard Deviations, and the Variables
 
   Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (y) {
@@ -339,18 +351,18 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     y
   })
   Total_Weighted_Rescaled_Sums_of_Squares <- sapply(Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, sum)
-  
-  
+
+
   # Determine Which Combinations Are Optimal
-  
+
   Position <- order(Total_Weighted_Rescaled_Sums_of_Squares)[seq_len(Number_of_Combinations_to_Report)]
   Total_Weighted_Rescaled_Sum_of_Squares <- Total_Weighted_Rescaled_Sums_of_Squares[order(Total_Weighted_Rescaled_Sums_of_Squares)][seq_len(Number_of_Combinations_to_Report)]
   Best_Positions <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = Total_Weighted_Rescaled_Sum_of_Squares, Position = Position)
   rownames(Best_Positions) <- NULL
-  
-  
+
+
   # Generate the Final Output
-  
+
   Best_Combinations <- Original_List_of_Possible_Groups[Best_Positions$Position[seq_len(Number_of_Combinations_to_Report)]]
   names(Best_Combinations) <- paste0("Optimal_Combination_", seq_len(Number_of_Combinations_to_Report))
   Best_Combinations <- lapply(Best_Combinations, function (x) {
@@ -410,7 +422,7 @@ Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height
 
 # Use the Function
 
-Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 3, Use_the_RcppAlgos_Package = F)
+Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 3, Use_the_RcppAlgos_Package = T)
 
 # Here is the output from the preceding line of code:
 
@@ -422,22 +434,22 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # 2           7       16     46                        0                      1                    0
 # 3          11       24     53                        0                      1                    0
 # 4          14       26     62                        0                      0                    1
-# 
+#
 # $Optimal_Combinations$Optimal_Combination_1$Group_2
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           3       13     53                        0                      1                    0
 # 2           6       15     44                        0                      1                    0
 # 3           9       22     58                        0                      1                    0
 # 4          12       26     58                        0                      0                    1
-# 
+#
 # $Optimal_Combinations$Optimal_Combination_1$Group_3
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           5       14     44                        0                      1                    0
 # 2           8       18     57                        0                      0                    1
 # 3          10       23     55                        0                      1                    0
 # 4          13       25     60                        0                      0                    1
-# 
-# 
+#
+#
 # $Optimal_Combinations$Optimal_Combination_1_Means_and_Standard_Deviations
 #                    Variable          Parameter   Group_1   Group_2    Group_3
 # 1                  Diameter               Mean 19.500000 19.000000 20.0000000
@@ -450,86 +462,86 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 # 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
 # 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
 # 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
-# 
+#
 # $Optimal_Combinations$Optimal_Combination_2
 # $Optimal_Combinations$Optimal_Combination_2$Group_1
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           2       12     55                        0                      1                    0
 # 2           7       16     46                        0                      1                    0
 # 3          11       24     53                        0                      1                    0
-# 4          14       26     62                        0                      0                    1
-# 
+# 4          13       25     60                        0                      0                    1
+#
 # $Optimal_Combinations$Optimal_Combination_2$Group_2
+#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
+# 1           3       13     53                        0                      1                    0
+# 2           6       15     44                        0                      1                    0
+# 3          10       23     55                        0                      1                    0
+# 4          14       26     62                        0                      0                    1
+#
+# $Optimal_Combinations$Optimal_Combination_2$Group_3
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           5       14     44                        0                      1                    0
 # 2           8       18     57                        0                      0                    1
-# 3          10       23     55                        0                      1                    0
-# 4          13       25     60                        0                      0                    1
-# 
-# $Optimal_Combinations$Optimal_Combination_2$Group_3
-#   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           3       13     53                        0                      1                    0
-# 2           6       15     44                        0                      1                    0
 # 3           9       22     58                        0                      1                    0
 # 4          12       26     58                        0                      0                    1
-# 
-# 
+#
+#
 # $Optimal_Combinations$Optimal_Combination_2_Means_and_Standard_Deviations
-#                    Variable          Parameter   Group_1    Group_2   Group_3
-# 1                  Diameter               Mean 19.500000 20.0000000 19.000000
-# 2                    Height               Mean 54.000000 54.0000000 53.250000
-# 3  Crown_Class_Intermediate               Mean  0.000000  0.0000000  0.000000
-# 4    Crown_Class_Codominant               Mean  0.750000  0.5000000  0.750000
-# 5      Crown_Class_Dominant               Mean  0.250000  0.5000000  0.250000
-# 6                  Diameter Standard_Deviation  6.608076  4.9665548  6.055301
-# 7                    Height Standard_Deviation  6.582806  6.9761498  6.601767
-# 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.0000000  0.000000
-# 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.5773503  0.500000
-# 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.5773503  0.500000
-# 
+#                    Variable          Parameter   Group_1   Group_2    Group_3
+# 1                  Diameter               Mean 19.250000 19.250000 20.0000000
+# 2                    Height               Mean 53.500000 53.500000 54.2500000
+# 3  Crown_Class_Intermediate               Mean  0.000000  0.000000  0.0000000
+# 4    Crown_Class_Codominant               Mean  0.750000  0.750000  0.5000000
+# 5      Crown_Class_Dominant               Mean  0.250000  0.250000  0.5000000
+# 6                  Diameter Standard_Deviation  6.291529  6.238322  5.1639778
+# 7                    Height Standard_Deviation  5.802298  7.416198  6.8495742
+# 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
+# 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
+# 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
+#
 # $Optimal_Combinations$Optimal_Combination_3
 # $Optimal_Combinations$Optimal_Combination_3$Group_1
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           3       13     53                        0                      1                    0
+# 1           2       12     55                        0                      1                    0
 # 2           6       15     44                        0                      1                    0
-# 3           9       22     58                        0                      1                    0
-# 4          12       26     58                        0                      0                    1
-# 
+# 3          10       23     55                        0                      1                    0
+# 4          13       25     60                        0                      0                    1
+#
 # $Optimal_Combinations$Optimal_Combination_3$Group_2
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
-# 1           2       12     55                        0                      1                    0
+# 1           3       13     53                        0                      1                    0
 # 2           7       16     46                        0                      1                    0
 # 3          11       24     53                        0                      1                    0
 # 4          14       26     62                        0                      0                    1
-# 
+#
 # $Optimal_Combinations$Optimal_Combination_3$Group_3
 #   Tree_Number Diameter Height Crown_Class_Intermediate Crown_Class_Codominant Crown_Class_Dominant
 # 1           5       14     44                        0                      1                    0
 # 2           8       18     57                        0                      0                    1
-# 3          10       23     55                        0                      1                    0
-# 4          13       25     60                        0                      0                    1
-# 
-# 
+# 3           9       22     58                        0                      1                    0
+# 4          12       26     58                        0                      0                    1
+#
+#
 # $Optimal_Combinations$Optimal_Combination_3_Means_and_Standard_Deviations
 #                    Variable          Parameter   Group_1   Group_2    Group_3
-# 1                  Diameter               Mean 19.000000 19.500000 20.0000000
-# 2                    Height               Mean 53.250000 54.000000 54.0000000
+# 1                  Diameter               Mean 18.750000 19.750000 20.0000000
+# 2                    Height               Mean 53.500000 53.500000 54.2500000
 # 3  Crown_Class_Intermediate               Mean  0.000000  0.000000  0.0000000
 # 4    Crown_Class_Codominant               Mean  0.750000  0.750000  0.5000000
 # 5      Crown_Class_Dominant               Mean  0.250000  0.250000  0.5000000
-# 6                  Diameter Standard_Deviation  6.055301  6.608076  4.9665548
-# 7                    Height Standard_Deviation  6.601767  6.582806  6.9761498
+# 6                  Diameter Standard_Deviation  6.238322  6.238322  5.1639778
+# 7                    Height Standard_Deviation  6.757712  6.557439  6.8495742
 # 8  Crown_Class_Intermediate Standard_Deviation  0.000000  0.000000  0.0000000
 # 9    Crown_Class_Codominant Standard_Deviation  0.500000  0.500000  0.5773503
 # 10     Crown_Class_Dominant Standard_Deviation  0.500000  0.500000  0.5773503
-# 
-# 
+#
+#
 # $Variable_Metadata
 #      Variable Weight
 # 1    Diameter      1
 # 2      Height      1
 # 3 Crown_Class      1
-# 
+#
 # $Parameter_Metadata
 #            Parameter Weight
 # 1               Mean      2
