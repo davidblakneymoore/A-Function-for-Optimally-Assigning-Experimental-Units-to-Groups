@@ -32,7 +32,7 @@
 # groups between measurements.
 
 # This function optionally uses the 'comboGroups' function from the 'RcppAlgos'
-# package on line 189.
+# package on line 230.
 
 # This function takes 10 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
@@ -93,42 +93,83 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
 
   Identifiers_Name <- gsub("^.*[$]", "", deparse(substitute(Identifiers)))
   if (!missing(Data_Frame)) {
+    if (class(Data_Frame) != 'data.frame') {
+      stop ("'Data_Frame' must be of class 'data.frame'.")
+    }
     Data_Frame <- Data_Frame[, c(Identifiers_Name, sapply(substitute(c(...)), deparse)[-1])]
   } else if (missing(Data_Frame)) {
     Data_Frame <- data.frame(Identifiers, ...)
   }
   Identifiers <- Data_Frame[, 1]
   Measurements <- Data_Frame[, 2:ncol(Data_Frame)]
-  if (length(Variable_Weights) != ncol(Measurements)) {
-    stop ("'Variable_Weights' must contain as many numbers as there are measurement variables being considered.")
-  }
-  if (!is.numeric(Variable_Weights) | any(Variable_Weights < 0)) {
-    stop ("All variable weights must be numeric and non-negative.")
-  }
-  if (!is.numeric(Number_of_Groups)) {
-    stop ("'Number_of_Groups' must be numeric.")
-  }
-  if (!is.numeric(Number_of_Items_in_Each_Group)) {
-    stop ("'Number_of_Items_in_Each_Group' must be numeric.")
-  }
   if (length(Identifiers) < (Number_of_Groups * Number_of_Items_in_Each_Group)) {
     stop ("You don't have enough potential experimental units to have that many groups with that many experimental units in each group.")
   }
   if (length(Identifiers) != length(unique(Identifiers))) {
     stop ("Some of the identifiers you provided are the same.")
   }
+  if (length(Number_of_Groups) != 1 | !is.numeric(Number_of_Groups) | Number_of_Groups < 0) {
+    stop ("'Number_of_Groups' must be a single positive integer.")
+  }
+  if (Number_of_Groups %% 1 > 0.5) {
+    Remainder_1 <- 1 - (Number_of_Groups %% 1)
+  } else if (Number_of_Groups %% 1 <= 0.5) {
+    Remainder_1 <- Number_of_Groups %% 1
+  }
+  if (Remainder_1 > 0.05) {
+    stop ("'Number_of_Groups' must be a positive integer.")
+  } else if (Remainder_1 <= 0.05) {
+    Number_of_Groups <- as.integer(round(Number_of_Groups))
+  }
+  if (length(Number_of_Items_in_Each_Group) != 1 | !is.numeric(Number_of_Items_in_Each_Group) | Number_of_Items_in_Each_Group < 0) {
+    stop ("'Number_of_Items_in_Each_Group' must be a single positive integer.")
+  }
+  if (Number_of_Items_in_Each_Group %% 1 > 0.5) {
+    Remainder_2 <- 1 - (Number_of_Items_in_Each_Group %% 1)
+  } else if (Number_of_Items_in_Each_Group %% 1 <= 0.5) {
+    Remainder_2 <- Number_of_Items_in_Each_Group %% 1
+  }
+  if (Remainder_2 > 0.05) {
+    stop ("'Number_of_Items_in_Each_Group' must be a positive integer.")
+  } else if (Remainder_2 <= 0.05) {
+    Number_of_Items_in_Each_Group <- as.integer(round(Number_of_Items_in_Each_Group))
+  }
+  if (length(Variable_Weights) != ncol(Measurements)) {
+    stop ("'Variable_Weights' must contain as many numbers as there are measurement variables being considered.")
+  }
+  if (!is.numeric(Variable_Weights) | any(Variable_Weights < 0)) {
+    stop ("All variable weights must be numeric and nonnegative.")
+  }
+  if (!is.numeric(Mean_Weight)) {
+    stop ("'Mean_Weight' must be numeric.")
+  }
+  if (length(Mean_Weight) != 1) {
+    stop ("Please only provide one numeric value for the 'Mean_Weight' argument.")
+  }
+  if (!is.numeric(Standard_Deviation_Weight)) {
+    stop ("'Standard_Deviation_Weight' must be numeric.")
+  }
+  if (length(Standard_Deviation_Weight) != 1) {
+    stop ("Please only provide one numeric value for the 'Standard_Deviation_Weight' argument.")
+  }
   if (length(Number_of_Combinations_to_Report) != 1 | !is.numeric(Number_of_Combinations_to_Report) | Number_of_Combinations_to_Report < 0) {
     stop ("'Number_of_Combinations_to_Report' must be a single positive integer.")
   }
   if (Number_of_Combinations_to_Report %% 1 > 0.5) {
-    Remainder <- 1 - (Number_of_Combinations_to_Report %% 1)
+    Remainder_3 <- 1 - (Number_of_Combinations_to_Report %% 1)
   } else if (Number_of_Combinations_to_Report %% 1 <= 0.5) {
-    Remainder <- Number_of_Combinations_to_Report %% 1
+    Remainder_3 <- Number_of_Combinations_to_Report %% 1
   }
-  if (Remainder > 0.05) {
+  if (Remainder_3 > 0.05) {
     stop ("'Number_of_Combinations_to_Report' must be a positive integer.")
-  } else if (Remainder <= 0.05) {
+  } else if (Remainder_3 <= 0.05) {
     Number_of_Combinations_to_Report <- as.integer(round(Number_of_Combinations_to_Report))
+  }
+  if (!is.logical(Use_the_RcppAlgos_Package)) {
+    stop ("'Use_the_RcppAlgos_Package' must be logical.")
+  }
+  if (length(Use_the_RcppAlgos_Package) != 1) {
+    stop ("Please only provide one logical value for the 'Use_the_RcppAlgos_Package' argument.")
   }
   Variable_Metadata <- data.frame(Variable = colnames(Measurements), Weight = Variable_Weights)
   Parameter_Metadata <- data.frame(Parameter = c("Mean", "Standard_Deviation"), Weight = c(Mean_Weight, Standard_Deviation_Weight))
