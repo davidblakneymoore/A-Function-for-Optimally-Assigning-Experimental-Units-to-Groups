@@ -6,7 +6,7 @@ Furthermore, if you have more potential experimental units than you need for you
 
 This function can take more than one measurement variable into account to determine the optimal combination. It can also handle both numeric and categorical variables. Categorical variables are converted into dummy variables to ensure that categories are split up equally across groups, and weights associated with each categorical variable are divide by the number of groups to ensure that categorical variables are not weighted more heavily than they were intended to be.
 
-Before splitting items up into groups, this function first rescales each measurement variable to a standard normal distribution by subtracting the column mean from each measurement and then by dividing by the column standard deviation. By rescaling the measurements, it's possible to compare mean and standard deviation variability between groups between measurements later on.
+Before splitting items up into groups, this function first rescales each measurement variable to a standard normal distribution by subtracting the column mean from each measurement and then by dividing each measurement by the column standard deviation. By rescaling the measurements, it's possible to compare mean and standard deviation variability between groups between measurements later on.
 
 This function optionally uses the `comboGroups` function from the `RcppAlgos` package.
 
