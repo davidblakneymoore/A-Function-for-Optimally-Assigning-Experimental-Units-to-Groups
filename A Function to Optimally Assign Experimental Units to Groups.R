@@ -2,6 +2,10 @@
 # A Function to Optimize Group Assignments by Minimizing the Variability in
 # Group Means and Standard Deviations of One or More Variables
 
+# David Moore
+
+# December 2021
+
 
 # The Explanation
 
