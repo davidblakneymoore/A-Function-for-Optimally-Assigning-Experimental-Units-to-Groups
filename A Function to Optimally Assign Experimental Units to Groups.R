@@ -3,7 +3,7 @@
 # Group Means and Standard Deviations of One or More Variables
 
 
-# Explanation
+# The Explanation
 
 # To assign experimental units to treatments, it might be worthwhile to ensure
 # that means or standard deviations (or both) of some variables that define
@@ -401,7 +401,7 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
 }
 
 
-# Test the Function Out
+# An Example
 
 # Let's try to use this function on some made-up data. Let's pretend we have
 # 14 potential study trees and we want to have 3 treatment groups and 4
@@ -414,8 +414,7 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
 
 # Be patient - this code will probably take a while to run.
 
-
-# Generate Some Practice Data
+# Let's generate some practice data.
 
 Tree_Numbers <- as.character(1:14)
 Diameters <- c(10, 12, 13, 13, 14, 15, 16, 18, 22, 23, 24, 26, 25, 26)
@@ -423,8 +422,7 @@ Heights <- c(45, 55, 53, 42, 44, 44, 46, 57, 58, 55, 53, 58, 60, 62)
 Crown_Classes <- c("Intermediate", "Codominant", "Codominant", "Intermediate", "Codominant", "Codominant", "Codominant", "Dominant", "Codominant", "Codominant", "Codominant", "Dominant", "Dominant", "Dominant")
 Tree_Data <- data.frame(Tree_Number = Tree_Numbers, Diameter = Diameters, Height = Heights, Crown_Class = Crown_Classes)
 
-
-# Use the Function
+# Let's run the function on these data.
 
 Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_Class, Data_Frame = Tree_Data, Number_of_Groups = 3, Number_of_Items_in_Each_Group = 4, Variable_Weights = c(1, 1, 1), Mean_Weight = 2, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 3, Use_the_RcppAlgos_Package = T)
 
