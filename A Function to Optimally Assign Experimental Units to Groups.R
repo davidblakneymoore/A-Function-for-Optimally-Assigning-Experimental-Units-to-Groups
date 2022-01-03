@@ -2,12 +2,8 @@
 # A Function to Optimize Group Assignments by Minimizing the Variability in
 # Group Means and Standard Deviations of One or More Variables
 
-# David Moore
 
-# Dec. 18th, 2021
-
-
-# Explain This Function
+# Explanation
 
 # To assign experimental units to treatments, it might be worthwhile to ensure
 # that means or standard deviations (or both) of some variables that define
@@ -88,9 +84,6 @@
 # The Function
 
 Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 1, Use_the_RcppAlgos_Package = TRUE) {
-
-  # Format the Inputs and Meet Some Initial Conditions
-
   Identifiers_Name <- gsub("^.*[$]", "", deparse(substitute(Identifiers)))
   if (!missing(Data_Frame)) {
     if (class(Data_Frame) != 'data.frame') {
@@ -211,19 +204,11 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   Variable_Names <- colnames(Measurements)
   Data_Frame <- data.frame(Identifiers, Measurements)
   colnames(Data_Frame)[1] <- Identifiers_Name
-
-
-  # Rescale the Data by Column to Facilitate Comparisons Between Columns
-
   Rescaled_Data <- as.data.frame(lapply(Data_Frame[, 2:ncol(Data_Frame)], function (x) {
     (x - mean(x)) / sd(x)
   }))
   Rescaled_Data[, Identifiers_Name] <- Data_Frame[, Identifiers_Name]
   Rescaled_Data <- Rescaled_Data[, c(which(colnames(Rescaled_Data) == Identifiers_Name), which(colnames(Rescaled_Data) != Identifiers_Name))]
-
-
-  # Generate All Possible Group Assignments From These Combinations
-
   if (Use_the_RcppAlgos_Package) {
     Combinations <- as.list(as.data.frame(combn(Identifiers, Number_of_Groups * Number_of_Items_in_Each_Group)))
     Possible_Groups <- lapply(Combinations, function (x) {
@@ -304,7 +289,6 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     All_Possible_Groups <- mapply(function (x, y) {
       x[rep(seq_len(length(x)), each = y)]
     }, x = All_Possible_Groups, y = Repitition_Times, SIMPLIFY = F)
-
     All_Possible_Groups <- lapply(seq_len(unique(sapply(All_Possible_Groups, length))), function (x) {
       lapply(All_Possible_Groups,"[[", x)
     })
@@ -347,10 +331,6 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
       z[, c(which(colnames(z) == Identifiers_Name), which(colnames(z) != Identifiers_Name))]
     })
   })
-
-
-  # Calculate the Rescaled Means and the Standard Deviations
-
   Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_List_of_Possible_Groups, function (y) {
     sapply(y, function (z) {
       Means <- sapply(z[, 2:ncol(z)], mean)
@@ -363,11 +343,6 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
   Average_Rescaled_Means_and_Standard_Deviations <- lapply(Rescaled_Means_and_Standard_Deviations, function (x) {
     apply(x, 1, mean)
   })
-
-
-  # Determine the Variabilities in Rescaled Means and in Standard Deviations
-  # for Each Combination
-
   Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- mapply(function (a, b) {
     rowSums((a - b) ^ 2)
   }, a = Rescaled_Means_and_Standard_Deviations, b = Average_Rescaled_Means_and_Standard_Deviations, SIMPLIFY = F)
@@ -375,10 +350,6 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     names(y) <- paste0(names(y), "_Sums_of_Squares")
     y
   })
-
-
-  # Weigh the Means, the Standard Deviations, and the Variables
-
   Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares <- lapply(Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, function (y) {
     z <- names(y)
     y <- ifelse(grepl("^Rescaled_Mean", z), y * Mean_Weight, y)
@@ -392,18 +363,10 @@ Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_o
     y
   })
   Total_Weighted_Rescaled_Sums_of_Squares <- sapply(Weighted_Rescaled_Mean_and_Standard_Deviation_Sums_of_Squares, sum)
-
-
-  # Determine Which Combinations Are Optimal
-
   Position <- order(Total_Weighted_Rescaled_Sums_of_Squares)[seq_len(Number_of_Combinations_to_Report)]
   Total_Weighted_Rescaled_Sum_of_Squares <- Total_Weighted_Rescaled_Sums_of_Squares[order(Total_Weighted_Rescaled_Sums_of_Squares)][seq_len(Number_of_Combinations_to_Report)]
   Best_Positions <- data.frame(Total_Weighted_Rescaled_Sum_of_Squares = Total_Weighted_Rescaled_Sum_of_Squares, Position = Position)
   rownames(Best_Positions) <- NULL
-
-
-  # Generate the Final Output
-
   Best_Combinations <- Original_List_of_Possible_Groups[Best_Positions$Position[seq_len(Number_of_Combinations_to_Report)]]
   names(Best_Combinations) <- paste0("Optimal_Combination_", seq_len(Number_of_Combinations_to_Report))
   Best_Combinations <- lapply(Best_Combinations, function (x) {
