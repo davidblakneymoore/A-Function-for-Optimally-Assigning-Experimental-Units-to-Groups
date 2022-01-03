@@ -3,7 +3,8 @@
 # Group Means and Standard Deviations of One or More Variables
 
 # David Moore
-
+# University of New Hampshire Ecohydrology Lab
+# davidblakneymoore@gmail.com
 # December 2021
 
 
