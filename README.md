@@ -1,4 +1,4 @@
-# A Function for Optimally Assigning Experimental Units to Groups
+# A Function for Optimally Assigning Experimental Units to Groups in R
 
 To assign experimental units to treatments, it might be worthwhile to ensure that means or standard deviations of a variable or of some variables that define experimental units are as equal as possible between treatment groups. This function takes measurements from potential experimental units and assigns treatment groups that equalize means and standard deviations as much as possible.
 
