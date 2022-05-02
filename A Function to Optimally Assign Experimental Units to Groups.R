@@ -552,3 +552,10 @@ Optimizing_Group_Assignments(Identifiers = Tree_Number, Diameter, Height, Crown_
 #            Parameter Weight
 # 1               Mean      2
 # 2 Standard_Deviation      1
+
+
+# Works Cited
+
+# Wood, J. 2021. RcppAlgos: High Performance Tools for Combinatorics and
+# Computational Mathematics. R package version 2.4.3.
+# https://cran.r-project.org/web/packages/RcppAlgos/.
