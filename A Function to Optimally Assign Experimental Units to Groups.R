@@ -31,8 +31,8 @@
 # it's possible to compare mean and standard deviation variability between
 # groups between measurements.
 
-# This function optionally uses the 'comboGroups' function from the 'RcppAlgos'
-# package on line 230.
+# This function optionally uses the 'comboGroups()' function from the
+# 'RcppAlgos' package on line 219.
 
 # This function takes 10 arguments. The first, the second, the fourth, and the
 # fifth arguments are required.
