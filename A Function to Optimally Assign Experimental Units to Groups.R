@@ -88,12 +88,13 @@
 # The Function
 
 Optimizing_Group_Assignments <- function (Identifiers, ..., Data_Frame, Number_of_Groups, Number_of_Items_in_Each_Group, Variable_Weights = rep(1, ncol(cbind(...))), Mean_Weight = 1, Standard_Deviation_Weight = 1, Number_of_Combinations_to_Report = 1, Use_the_RcppAlgos_Package = TRUE) {
-  Identifiers_Name <- gsub("^.*[$]", "", deparse(substitute(Identifiers)))
+  Identifiers_Name <- deparse(substitute(Identifiers))
   if (!missing(Data_Frame)) {
     if (class(Data_Frame) != 'data.frame') {
       stop ("'Data_Frame' must be of class 'data.frame'.")
     }
     Data_Frame <- Data_Frame[, c(Identifiers_Name, sapply(substitute(c(...)), deparse)[-1])]
+    colnames(Data_Frame)[1] <- c("Identifiers")
   } else if (missing(Data_Frame)) {
     Data_Frame <- data.frame(Identifiers, ...)
   }
